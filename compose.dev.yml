@@ -1,0 +1,13 @@
+# Local development overrides. Use together with compose.yml:
+#
+#   docker compose -f compose.yml -f compose.dev.yml up -d llamacpp
+#
+# then run the backend with `uv run` and OPENAI_API_BASE=http://localhost:8000/v1.
+# Ports are bound to localhost only.
+services:
+  llamacpp:
+    ports:
+      - 127.0.0.1:8000:8000
+  backend:
+    ports:
+      - 127.0.0.1:11696:11696

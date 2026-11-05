@@ -1,0 +1,18 @@
+# Not needed to build the backend image
+frontend/
+backend/tests/
+backend/logs/
+backend/data/
+.git/
+.gitignore
+
+# Secrets and local environments
+.env
+.venv/
+
+# Caches
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

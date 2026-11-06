@@ -16,11 +16,7 @@ services:
     networks:
       - default
 
-  backend:
-    restart: unless-stopped
-
   frontend:
-    restart: unless-stopped
     ports: !reset [] # only Caddy is reachable from outside now
 
 volumes:

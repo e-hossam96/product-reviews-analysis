@@ -61,7 +61,7 @@ services:
       --port 8000
       --hf-repo unsloth/Qwen3.5-2B-GGUF:Q4_K_M
       --n-gpu-layers 0
-      --threads 4
+      --threads ${LLM_THREADS:-4}
       --parallel ${LLM_PARALLEL:-4}
       --ctx-size 16384
       --seed 42
@@ -86,6 +86,9 @@ networks:
   default:
     name: reviews-network
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
 
 volumes:
   # Same name the earlier `docker run` experiments used, so the model that is

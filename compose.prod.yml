@@ -1,0 +1,28 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: reviews-caddy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # the certificates live here: keep this volume
+      - caddy-config:/config
+    depends_on:
+      - frontend
+    networks:
+      - default
+
+  backend:
+    restart: unless-stopped
+
+  frontend:
+    restart: unless-stopped
+    ports: !reset [] # only Caddy is reachable from outside now
+
+volumes:
+  caddy-data:
+  caddy-config:

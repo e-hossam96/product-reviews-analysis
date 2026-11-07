@@ -1,0 +1,13 @@
+{
+	email you@example.com
+}
+
+reviews-demo.hossammostafa.ai {
+	basic_auth {
+		demo PASTE_THE_HASH_HERE
+	}
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy frontend:80 {
+		header_up -Authorization
+	}
+}

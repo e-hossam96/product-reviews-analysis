@@ -3,7 +3,16 @@
 }
 
 reviews-demo.hossammostafa.ai {
-	basic_auth {
+	# Link previews: chat apps and social sites fetch the page without a password, so
+	# let them read the static page shell and its images. The API stays protected.
+	@protected {
+		not path /og-image.png /favicon.svg /apple-touch-icon.png
+		not {
+			path /
+			header_regexp User-Agent (?i)(facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|whatsapp|telegrambot|discordbot|skypeuripreview|microsoftpreview|redditbot|pinterest|applebot|googlebot)
+		}
+	}
+	basic_auth @protected {
 		demo PASTE_THE_HASH_HERE
 	}
 	header Strict-Transport-Security "max-age=31536000"

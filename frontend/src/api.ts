@@ -164,6 +164,11 @@ export function getJob(sessionId: string): Promise<JobState> {
   return request<JobState>(`${sessionPath(sessionId)}/job`)
 }
 
+/** Stop the running analysis; no more requests go to the language model. */
+export function stopAnalysis(sessionId: string): Promise<JobState> {
+  return request<JobState>(`${sessionPath(sessionId)}/job/stop`, { method: 'POST' })
+}
+
 export function getResults(sessionId: string): Promise<Results> {
   return request<Results>(`${sessionPath(sessionId)}/results`)
 }

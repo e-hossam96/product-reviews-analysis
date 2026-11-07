@@ -8,6 +8,23 @@ from app.ai.schemas import MAX_SCORE, MIN_SCORE, ProductDetails
 from app.models import AspectResult, ResultsResponse
 
 _FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+_MINOR_WORDS = frozenset(
+    {"a", "an", "and", "as", "at", "but", "by", "for", "in", "nor"}
+    | {"of", "on", "or", "per", "the", "to", "via", "vs", "with"}
+)
+
+
+def _title_word(word: str, *, first: bool) -> str:
+    if any(c.isupper() for c in word):
+        return word  # keep deliberate casing such as "iPhone" or "USB"
+    if not first and word in _MINOR_WORDS:
+        return word
+    return "-".join(part[:1].upper() + part[1:] for part in word.split("-"))
+
+
+def title_case(text: str) -> str:
+    """Display form of a name or aspect: "battery life" -> "Battery Life"."""
+    return " ".join(_title_word(w, first=i == 0) for i, w in enumerate(text.split(" ")))
 
 
 def build_results(
@@ -31,14 +48,14 @@ def build_results(
             distribution[value] += 1
         aspects.append(
             AspectResult(
-                aspect=aspect,
+                aspect=title_case(aspect),
                 mean_score=round(sum(values) / len(values), 2) if values else None,
                 mention_count=len(values),
                 distribution=distribution,
             )
         )
     return ResultsResponse(
-        product_name=product.name,
+        product_name=title_case(product.name),
         review_count=review_count,
         analyzed_count=analyzed_count,
         failed_count=failed_count,
@@ -63,7 +80,7 @@ def build_export_csv(product: ProductDetails, rows: Sequence[ExportRow]) -> byte
     """UTF-8 with a BOM, so Excel shows non-ASCII text correctly."""
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["row", "text", "status", *(csv_safe(a) for a in product.aspects)])
+    writer.writerow(["row", "text", "status", *(csv_safe(title_case(a)) for a in product.aspects)])
     for row in sorted(rows, key=lambda r: r.row_index):
         writer.writerow(
             [

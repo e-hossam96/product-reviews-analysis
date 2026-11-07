@@ -68,6 +68,8 @@ export interface FakeOptions {
   extractFailures?: number
   jobs?: JobStep[]
   analyzeError?: { status: number; detail: unknown }
+  /** answer to POST /sessions/{id}/job/stop; by default the job stops after 2 reviews */
+  stop?: JobState | { status: number; detail: unknown }
 }
 
 export interface RecordedCall {
@@ -156,6 +158,12 @@ export function installFakeBackend(options: FakeOptions = {}) {
       const value = typeof step === 'function' ? await step() : step
       if (value instanceof Error) throw value
       return json(value)
+    }
+
+    if (method === 'POST' && path === `${sessionPrefix}/job/stop`) {
+      const answer = options.stop ?? job('failed', 2, { error: 'You stopped the analysis.' })
+      if ('detail' in answer) return json({ detail: answer.detail }, answer.status)
+      return json(answer)
     }
 
     if (method === 'GET' && path === `${sessionPrefix}/results`) return json(RESULTS)

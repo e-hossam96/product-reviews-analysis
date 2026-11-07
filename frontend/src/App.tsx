@@ -14,16 +14,20 @@ import {
   type SessionCreated,
   type SessionState,
 } from './api'
+import { AppHeader } from './components/AppHeader'
 import { ErrorBanner } from './components/ErrorBanner'
 import { loadChart } from './components/lazyChart'
 import { ProgressStep } from './components/ProgressStep'
 import { ResultsStep } from './components/ResultsStep'
 import { ReviewStep } from './components/ReviewStep'
-import { Stepper, type Step } from './components/Stepper'
-import { ThemeToggle } from './components/ThemeToggle'
+import { type Step } from './components/Stepper'
 import { UploadStep } from './components/UploadStep'
 import { useExtraction } from './hooks/useExtraction'
 import { clearSessionId, loadSessionId, saveSessionId } from './sessionStore'
+
+// Used until the config arrives, or if it never does.
+const DEFAULT_SECONDS_PER_REVIEW = 2.5
+const DEFAULT_MAX_ASPECTS = 10
 
 interface SessionInfo {
   id: string
@@ -38,10 +42,7 @@ interface RestoreState {
   error: string | null
 }
 
-const SECONDS_PER_REVIEW_FALLBACK = 2.5
-
-// Shown whenever the backend reports that tracing is on.
-const TRACING_NOTICE = 'LLM Tracing On'
+const RESTORE_IDLE: RestoreState = { status: 'idle', error: null }
 
 export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number }) {
   const [config, setConfig] = useState<AppConfig | null>(null)
@@ -49,11 +50,11 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
   const [session, setSession] = useState<SessionInfo | null>(null)
   const [confirmed, setConfirmed] = useState<ProductDetails | null>(null)
   const [results, setResults] = useState<Results | null>(null)
+  // Bumping this remounts ProgressStep, which starts polling afresh.
   const [pollRun, setPollRun] = useState(0)
-  const [restore, setRestore] = useState<RestoreState>(() => ({
-    status: loadSessionId() ? 'loading' : 'idle',
-    error: null,
-  }))
+  const [restore, setRestore] = useState<RestoreState>(() =>
+    loadSessionId() ? { status: 'loading', error: null } : RESTORE_IDLE,
+  )
   const [restoreRun, setRestoreRun] = useState(0)
   const extraction = useExtraction()
   const {
@@ -62,6 +63,10 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
     provide: provideSuggestion,
     reset: resetExtraction,
   } = extraction
+
+  const secondsPerReview = config?.estimated_seconds_per_review ?? DEFAULT_SECONDS_PER_REVIEW
+  const maxAspects = config?.max_aspects ?? DEFAULT_MAX_ASPECTS
+  const pollAgain = () => setPollRun((run) => run + 1)
 
   useEffect(() => {
     let cancelled = false
@@ -102,7 +107,7 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
           void startExtraction(id)
         }
       }
-      setRestore({ status: 'idle', error: null })
+      setRestore(RESTORE_IDLE)
     },
     [provideSuggestion, startExtraction],
   )
@@ -124,7 +129,7 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
         if (cancelled) return
         if (e instanceof ApiError && e.status === 404) {
           clearSessionId() // it expired: start fresh
-          setRestore({ status: 'idle', error: null })
+          setRestore(RESTORE_IDLE)
           return
         }
         setRestore({ status: 'failed', error: describeError(e) })
@@ -163,7 +168,7 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
       // fetched early so it is ready for the results; a failure shows up there
     })
     setConfirmed(saved)
-    setPollRun((run) => run + 1)
+    pollAgain()
     setStep('progress')
   }
 
@@ -175,15 +180,14 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
 
   const handleCompleted = useCallback(async () => {
     if (!session) return
-    const loaded = await getResults(session.id)
-    setResults(loaded)
+    setResults(await getResults(session.id))
     setStep('results')
   }, [session])
 
   async function handleRetry() {
     if (!session) return
     await startAnalysis(session.id)
-    setPollRun((run) => run + 1)
+    pollAgain()
   }
 
   function handleRestart() {
@@ -192,7 +196,7 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
     setSession(null)
     setConfirmed(null)
     setResults(null)
-    setRestore({ status: 'idle', error: null })
+    setRestore(RESTORE_IDLE)
     setStep('upload')
   }
 
@@ -201,60 +205,15 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
     setRestoreRun((run) => run + 1)
   }
 
+  const ready = restore.status === 'idle'
+
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="app-title">
-          <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-              </svg>
-            </span>
-            <div>
-              <h1>Product reviews analysis</h1>
-              <p className="brand-tagline">See what customers say about each aspect</p>
-            </div>
-          </div>
-          <div className="header-actions">
-            {step !== 'upload' && (
-              <button type="button" className="link-button" onClick={handleRestart}>
-                Start over
-              </button>
-            )}
-            <ThemeToggle />
-          </div>
-        </div>
-        <Stepper current={step} />
-        {config?.tracing_enabled && (
-          <p className="notice" role="note">
-            <svg
-              className="notice-icon"
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="9.5" />
-              <path d="M12 11v5.5M12 7.5v.01" strokeWidth="2.4" />
-            </svg>
-            {TRACING_NOTICE}
-          </p>
-        )}
-      </header>
+      <AppHeader
+        step={step}
+        tracingEnabled={config?.tracing_enabled ?? false}
+        onRestart={handleRestart}
+      />
       <main>
         {restore.status === 'loading' && (
           <section className="card" aria-busy="true">
@@ -278,13 +237,12 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
           </section>
         )}
 
-        {restore.status === 'idle' && step === 'upload' && (
-          <UploadStep config={config} onUploaded={handleUploaded} />
-        )}
+        {ready && step === 'upload' && <UploadStep config={config} onUploaded={handleUploaded} />}
 
-        {restore.status === 'idle' && step === 'review' && session && (
+        {ready && step === 'review' && session && (
           <ReviewStep
-            config={config}
+            maxAspects={maxAspects}
+            secondsPerReview={secondsPerReview}
             filename={session.filename}
             reviewCount={session.reviewCount}
             skippedEmpty={session.skippedEmpty}
@@ -297,26 +255,21 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
           />
         )}
 
-        {restore.status === 'idle' && step === 'progress' && session && (
+        {ready && step === 'progress' && session && (
           <ProgressStep
             key={pollRun}
             sessionId={session.id}
             pollIntervalMs={pollIntervalMs}
-            secondsPerReview={config?.estimated_seconds_per_review ?? SECONDS_PER_REVIEW_FALLBACK}
+            secondsPerReview={secondsPerReview}
             onCompleted={handleCompleted}
             onEdit={() => setStep('review')}
             onRetry={handleRetry}
-            onRecheck={() => setPollRun((run) => run + 1)}
+            onRecheck={pollAgain}
           />
         )}
 
-        {restore.status === 'idle' && step === 'results' && session && results && (
-          <ResultsStep
-            sessionId={session.id}
-            results={results}
-            onEdit={() => setStep('review')}
-            onRestart={handleRestart}
-          />
+        {ready && step === 'results' && session && results && (
+          <ResultsStep sessionId={session.id} results={results} onEdit={() => setStep('review')} />
         )}
       </main>
     </div>

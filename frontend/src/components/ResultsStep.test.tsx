@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { RESULTS, SESSION_ID } from '../test/fakeBackend'
 import { ResultsStep } from './ResultsStep'
 
-const renderResults = (handlers = { onEdit: vi.fn(), onRestart: vi.fn() }) =>
+const renderResults = (handlers = { onEdit: vi.fn() }) =>
   render(<ResultsStep sessionId={SESSION_ID} results={RESULTS} {...handlers} />)
 
 describe('ResultsStep', () => {
@@ -32,12 +32,10 @@ describe('ResultsStep', () => {
     )
   })
 
-  it('calls back for editing and for starting over', async () => {
-    const handlers = { onEdit: vi.fn(), onRestart: vi.fn() }
+  it('calls back for editing', async () => {
+    const handlers = { onEdit: vi.fn() }
     renderResults(handlers)
     await userEvent.click(screen.getByRole('button', { name: /edit the aspects/i }))
-    await userEvent.click(screen.getByRole('button', { name: /upload another file/i }))
     expect(handlers.onEdit).toHaveBeenCalledOnce()
-    expect(handlers.onRestart).toHaveBeenCalledOnce()
   })
 })

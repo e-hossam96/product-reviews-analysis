@@ -13,6 +13,9 @@ const DARK_QUERY = '(prefers-color-scheme: dark)'
 const listeners = new Set<() => void>()
 const notify = () => listeners.forEach((listener) => listener())
 
+let current: ThemePreference | null = null
+const getPreference = () => (current ??= loadPreference())
+
 function darkQuery(): MediaQueryList | null {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     ? window.matchMedia(DARK_QUERY)
@@ -59,9 +62,6 @@ export function setPreference(preference: ThemePreference): void {
   applyPreference(preference)
   notify()
 }
-
-let current: ThemePreference | null = null
-const getPreference = () => (current ??= loadPreference())
 
 function subscribe(listener: () => void) {
   listeners.add(listener)

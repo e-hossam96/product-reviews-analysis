@@ -112,7 +112,7 @@ describe('the whole flow', () => {
     await user.click(await screen.findByRole('button', { name: /confirm and analyze/i }))
     await screen.findByRole('heading', { name: 'Galaxy S24' })
 
-    await user.click(screen.getByRole('button', { name: /upload another file/i }))
+    await user.click(screen.getByRole('button', { name: /start over/i }))
     expect(await screen.findByText(/choose a csv file or drop it here/i)).toBeInTheDocument()
   })
 })
@@ -256,6 +256,46 @@ describe('while the analysis runs', () => {
     expect(backend.count('POST', `/sessions/${SESSION_ID}/analyze`)).toBe(2)
   })
 
+  it('stops the analysis on request and stops polling', async () => {
+    const { backend, user } = setup({ jobs: [job('running', 2)] })
+    await upload(user)
+    await user.click(await screen.findByRole('button', { name: /confirm and analyze/i }))
+    await screen.findByText(/2 of 6 reviews scored/)
+
+    await user.click(screen.getByRole('button', { name: /stop analysis/i }))
+    expect(
+      await screen.findByRole('heading', { name: /the analysis stopped/i }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('alert')[0]).toHaveTextContent(/you stopped the analysis/i)
+    expect(backend.count('POST', `/sessions/${SESSION_ID}/job/stop`)).toBe(1)
+
+    const polls = backend.count('GET', `/sessions/${SESSION_ID}/job`)
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(backend.count('GET', `/sessions/${SESSION_ID}/job`)).toBe(polls)
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  })
+
+  it('carries on when there was nothing left to stop', async () => {
+    const gate = deferred()
+    const { user } = setup({
+      jobs: [
+        job('running', 5),
+        async () => {
+          await gate.promise
+          return job('completed', 6)
+        },
+      ],
+      stop: { status: 409, detail: 'No analysis is running for this session' },
+    })
+    await upload(user)
+    await user.click(await screen.findByRole('button', { name: /confirm and analyze/i }))
+    await screen.findByText(/5 of 6 reviews scored/)
+    await user.click(screen.getByRole('button', { name: /stop analysis/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no analysis is running/i)
+    gate.resolve()
+    expect(await screen.findByRole('heading', { name: 'Galaxy S24' })).toBeInTheDocument()
+  })
+
   it('goes back to the aspects from a failed analysis', async () => {
     const { user } = setup({ jobs: [job('failed', 0, { error: 'Every review failed' })] })
     await upload(user)
@@ -324,12 +364,12 @@ describe('remembering the session', () => {
     expect(loadSessionId()).toBeNull()
   })
 
-  it('forgets the session when the user uploads another file', async () => {
+  it('forgets the session when the user starts over from the results', async () => {
     const { user } = setup({ jobs: [job('completed', 6)] })
     await upload(user)
     await user.click(await screen.findByRole('button', { name: /confirm and analyze/i }))
     await screen.findByRole('heading', { name: 'Galaxy S24' })
-    await user.click(screen.getByRole('button', { name: /upload another file/i }))
+    await user.click(screen.getByRole('button', { name: /start over/i }))
     expect(loadSessionId()).toBeNull()
   })
 })
@@ -454,7 +494,7 @@ describe('after a page reload', () => {
 describe('the note about stored responses', () => {
   it('is shown when tracing is on', async () => {
     setup({ tracing: true })
-    expect(await screen.findByRole('note')).toHaveTextContent('LLM responses are stored.')
+    expect(await screen.findByRole('note')).toHaveTextContent('LLM Tracing On')
   })
 
   it('is not shown when tracing is off', async () => {

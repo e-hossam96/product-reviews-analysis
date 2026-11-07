@@ -1,6 +1,7 @@
-import { useEffect, useEffectEvent, useState } from 'react'
-import { describeError, getJob, type JobState } from '../api'
+import { useState } from 'react'
+import { describeError, type JobState } from '../api'
 import { formatDuration } from '../format'
+import { useJobPolling } from '../hooks/useJobPolling'
 import { ErrorBanner } from './ErrorBanner'
 
 interface Props {
@@ -16,8 +17,6 @@ interface Props {
   onRecheck: () => void
 }
 
-const MAX_POLL_FAILURES = 3
-
 export function ProgressStep({
   sessionId,
   pollIntervalMs,
@@ -27,59 +26,11 @@ export function ProgressStep({
   onRetry,
   onRecheck,
 }: Props) {
-  const [job, setJob] = useState<JobState | null>(null)
-  const [pollError, setPollError] = useState<string | null>(null)
-  const [retryError, setRetryError] = useState<string | null>(null)
-  const [retrying, setRetrying] = useState(false)
-  const complete = useEffectEvent(onCompleted)
-
-  useEffect(() => {
-    // everything the polling loop changes lives in one object
-    const poll = {
-      cancelled: false,
-      misses: 0, // consecutive failed polls
-      timer: undefined as ReturnType<typeof setTimeout> | undefined,
-    }
-
-    async function tick() {
-      try {
-        const next = await getJob(sessionId)
-        if (poll.cancelled) return
-        poll.misses = 0
-        setJob(next)
-        if (next.status === 'completed') {
-          await complete() // a failure here is retried like a failed poll
-          return
-        }
-        if (next.status === 'failed') return
-      } catch (e) {
-        if (poll.cancelled) return
-        poll.misses += 1
-        if (poll.misses >= MAX_POLL_FAILURES) {
-          setPollError(describeError(e))
-          return
-        }
-      }
-      poll.timer = setTimeout(() => void tick(), pollIntervalMs)
-    }
-
-    void tick()
-    return () => {
-      poll.cancelled = true
-      clearTimeout(poll.timer)
-    }
-  }, [sessionId, pollIntervalMs])
-
-  async function handleRetry() {
-    setRetryError(null)
-    setRetrying(true)
-    try {
-      await onRetry()
-    } catch (e) {
-      setRetryError(describeError(e))
-      setRetrying(false)
-    }
-  }
+  const { job, pollError, stopping, stopError, stop } = useJobPolling(
+    sessionId,
+    pollIntervalMs,
+    onCompleted,
+  )
 
   if (pollError) {
     return (
@@ -96,24 +47,7 @@ export function ProgressStep({
   }
 
   if (job?.status === 'failed') {
-    return (
-      <section className="card">
-        <h2>The analysis stopped</h2>
-        <ErrorBanner message={job.error ?? 'The analysis failed.'} />
-        <p className="muted">
-          {job.done} of {job.total} reviews were processed before it stopped.
-        </p>
-        <ErrorBanner message={retryError} />
-        <div className="actions">
-          <button type="button" disabled={retrying} onClick={() => void handleRetry()}>
-            {retrying ? 'Starting…' : 'Try again'}
-          </button>
-          <button type="button" className="secondary" disabled={retrying} onClick={onEdit}>
-            Edit the aspects
-          </button>
-        </div>
-      </section>
-    )
+    return <FailedJob job={job} onRetry={onRetry} onEdit={onEdit} />
   }
 
   const total = job?.total ?? 0
@@ -131,6 +65,58 @@ export function ProgressStep({
       {job && total > done && (
         <p className="muted small">Time left: {formatDuration(remainingSeconds)}.</p>
       )}
+      <ErrorBanner message={stopError} />
+      <div className="actions">
+        <button
+          type="button"
+          className="secondary"
+          disabled={!job || stopping}
+          onClick={() => void stop()}
+        >
+          {stopping ? 'Stopping…' : 'Stop analysis'}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+interface FailedJobProps {
+  job: JobState
+  onRetry: () => Promise<void>
+  onEdit: () => void
+}
+
+function FailedJob({ job, onRetry, onEdit }: FailedJobProps) {
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState<string | null>(null)
+
+  async function handleRetry() {
+    setRetryError(null)
+    setRetrying(true)
+    try {
+      await onRetry()
+    } catch (e) {
+      setRetryError(describeError(e))
+      setRetrying(false)
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2>The analysis stopped</h2>
+      <ErrorBanner message={job.error ?? 'The analysis failed.'} />
+      <p className="muted">
+        {job.done} of {job.total} reviews were processed before it stopped.
+      </p>
+      <ErrorBanner message={retryError} />
+      <div className="actions">
+        <button type="button" disabled={retrying} onClick={() => void handleRetry()}>
+          {retrying ? 'Starting…' : 'Try again'}
+        </button>
+        <button type="button" className="secondary" disabled={retrying} onClick={onEdit}>
+          Edit the aspects
+        </button>
+      </div>
     </section>
   )
 }

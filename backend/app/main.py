@@ -2,7 +2,7 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +17,7 @@ from app.cleanup import cleanup_loop
 from app.core.config import get_settings
 from app.core.limiter import limiter
 from app.database.client import DatabaseClient
-from app.jobs import fail_interrupted_jobs
+from app.jobs import AnalysisTasks, fail_interrupted_jobs
 from app.utils import logger
 
 settings = get_settings()
@@ -41,21 +41,39 @@ def build_openai_client() -> AsyncOpenAI:
     )
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Starting up %s v%s", settings.application.name, settings.application.version)
+def build_llm_params() -> LLMParams:
     cfg = settings.openai
-    logger.debug("LLM client | model=%s base_url=%s", cfg.model_name, cfg.api_base)
-
-    app.state.db = DatabaseClient(settings.database)
-    app.state.openai_client = build_openai_client()
-    app.state.llm_params = LLMParams(
+    return LLMParams(
         model=cfg.model_name,
         temperature=cfg.temperature,
         max_completion_tokens=cfg.max_completion_tokens,
         seed=cfg.seed,
     )
+
+
+def flush_langfuse() -> None:
+    if not settings.langfuse.enabled:
+        return
+    try:
+        from langfuse import get_client
+
+        get_client().flush()
+    except Exception:
+        logger.exception("Could not flush Langfuse")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting up %s v%s", settings.application.name, settings.application.version)
+    logger.debug(
+        "LLM client | model=%s base_url=%s", settings.openai.model_name, settings.openai.api_base
+    )
+
+    app.state.db = DatabaseClient(settings.database)
+    app.state.openai_client = build_openai_client()
+    app.state.llm_params = build_llm_params()
     app.state.analysis_lock = asyncio.Lock()
+    app.state.analysis_tasks = AnalysisTasks()
 
     interrupted = await fail_interrupted_jobs(app.state.db)
     if interrupted:
@@ -74,14 +92,9 @@ async def lifespan(app: FastAPI):
     cleanup_task.cancel()
     with suppress(asyncio.CancelledError):
         await cleanup_task
+    await app.state.analysis_tasks.shutdown()  # running jobs are recorded as interrupted
     await app.state.openai_client.close()
-    if settings.langfuse.enabled:
-        try:
-            from langfuse import get_client
-
-            get_client().flush()
-        except Exception:
-            logger.exception("Could not flush Langfuse")
+    flush_langfuse()
     await app.state.db.close()
     logger.info("Shutdown complete")
 
@@ -104,7 +117,9 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def log_request_timing(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+async def log_request_timing(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     start = time.perf_counter()
     response = await call_next(request)
     # Log the route template, never the real path: the session id in the path is an
@@ -117,7 +132,7 @@ async def log_request_timing(request: Request, call_next: Callable[[Request], Aw
         path,
         response.status_code,
         (time.perf_counter() - start) * 1000,
-        datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        datetime.now(UTC).isoformat(timespec="seconds"),
     )
     return response
 
@@ -128,4 +143,6 @@ app.include_router(api_router, prefix="/api/v1")
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="127.0.0.1", port=11696, log_level="info", reload=True, workers=1)
+    uvicorn.run(
+        "app.main:app", host="127.0.0.1", port=11696, log_level="info", reload=True, workers=1
+    )

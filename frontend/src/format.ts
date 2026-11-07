@@ -1,3 +1,5 @@
+import type { ColorScheme } from './theme'
+
 export function formatDuration(seconds: number): string {
   if (seconds < 60) {
     return 'under a minute'
@@ -5,7 +7,13 @@ export function formatDuration(seconds: number): string {
   return `about ${Math.round(seconds / 60)} min`
 }
 
-export type Scheme = 'light' | 'dark'
+export function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? '' : 's'}`
+}
+
+export function formatScore(mean: number | null, digits = 2): string {
+  return mean === null ? '–' : mean.toFixed(digits)
+}
 
 // The average score has a direction (bad, neutral, good), so the bars use a diverging
 // scale: red for 1, a neutral gray for 3, blue for 5, one stop per whole score.
@@ -13,16 +21,16 @@ export type Scheme = 'light' | 'dark'
 // midpoint is the most recessive stop: lightest in the light theme, dimmest in the dark
 // theme. Every stop, and every blend between them, is at least 3:1 against the card
 // (checked in theme.test.ts).
-export const SCORE_STOPS: Record<Scheme, string[]> = {
+export const SCORE_STOPS: Record<ColorScheme, string[]> = {
   light: ['#b8323a', '#d0646a', '#8a8f99', '#5a8fd8', '#2463c4'],
   dark: ['#f07878', '#c9787c', '#6f7686', '#6f9ad6', '#6aa8ff'],
 }
-const NEUTRAL: Record<Scheme, string> = { light: '#7c8aa0', dark: '#8b97ac' }
+const NEUTRAL: Record<ColorScheme, string> = { light: '#7c8aa0', dark: '#8b97ac' }
 
 const toRgb = (color: string) => [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16))
 const hex = (value: number) => Math.round(value).toString(16).padStart(2, '0')
 
-export function scoreColor(mean: number | null, scheme: Scheme = 'light'): string {
+export function scoreColor(mean: number | null, scheme: ColorScheme = 'light'): string {
   if (mean === null) {
     return NEUTRAL[scheme]
   }
@@ -33,10 +41,6 @@ export function scoreColor(mean: number | null, scheme: Scheme = 'light'): strin
   const [from, to] = [toRgb(stops[lower]), toRgb(stops[lower + 1])]
   const [r, g, b] = from.map((channel, i) => channel + (to[i] - channel) * share)
   return `#${hex(r)}${hex(g)}${hex(b)}`
-}
-
-export function truncate(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text
 }
 
 /** Break a label into at most `maxLines` lines of about `maxChars` characters, at spaces

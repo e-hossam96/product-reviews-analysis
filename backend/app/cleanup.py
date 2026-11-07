@@ -9,7 +9,9 @@ from app.jobs import ACTIVE_STATUSES
 from app.utils import logger
 
 
-async def delete_expired_sessions(db: DatabaseClient, ttl_hours: int, *, now: datetime | None = None) -> int:
+async def delete_expired_sessions(
+    db: DatabaseClient, ttl_hours: int, *, now: datetime | None = None
+) -> int:
     """Delete sessions older than the TTL, except those with a job in progress.
 
     Reviews, scores and jobs go with them through ON DELETE CASCADE.

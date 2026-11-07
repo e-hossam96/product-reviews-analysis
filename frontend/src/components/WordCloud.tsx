@@ -1,5 +1,6 @@
 import type { NgramCount } from '../api'
 import { normalizeAspect } from '../aspects'
+import { plural } from '../format'
 
 interface Props {
   ngrams: NgramCount[]
@@ -31,7 +32,7 @@ export function WordCloud({ ngrams, selected, onPick }: Props) {
               className="cloud-word"
               style={{ fontSize: `${size.toFixed(2)}rem` }}
               aria-pressed={isSelected}
-              title={`In ${count} review${count === 1 ? '' : 's'}`}
+              title={`In ${plural(count, 'review')}`}
               onClick={() => onPick(ngram)}
             >
               {ngram}

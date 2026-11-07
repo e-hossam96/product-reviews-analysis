@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
@@ -49,8 +50,13 @@ class DatabaseClient:
         await self.engine.dispose()
         logger.debug("Database engine disposed")
 
-    async def __aenter__(self) -> DatabaseClient:
+    async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close()

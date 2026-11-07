@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 import logging
@@ -71,8 +72,12 @@ async def confirm(client, session_id, aspects=("battery life", "screen")) -> Non
 
 
 async def analyze(client, session_id) -> dict:
+    """Start an analysis and wait for it to finish."""
     response = await client.post(f"{API}/sessions/{session_id}/analyze")
     assert response.status_code == 202, response.text
+    task = main.app.state.analysis_tasks.get(session_id)
+    if task is not None:
+        await asyncio.wait([task])
     job = (await client.get(f"{API}/sessions/{session_id}/job")).json()
     return job
 
@@ -157,6 +162,7 @@ async def test_unknown_session_is_404_on_every_route(client):
         ("post", "extract"),
         ("post", "analyze"),
         ("get", "job"),
+        ("post", "job/stop"),
         ("get", "results"),
         ("get", "export.csv"),
     ]:
@@ -241,9 +247,9 @@ async def test_full_flow(client, llm):
     assert (results["review_count"], results["analyzed_count"], results["failed_count"]) == (4, 4, 0)
     battery, screen = results["aspects"]
     # review 1: great battery + great screen; 2: terrible screen; 4: battery
-    assert battery["aspect"] == "battery life" and battery["mention_count"] == 2
+    assert battery["aspect"] == "Battery Life" and battery["mention_count"] == 2
     assert battery["mean_score"] == 3.0  # (5 + 1) / 2
-    assert screen["aspect"] == "screen" and screen["mention_count"] == 2
+    assert screen["aspect"] == "Screen" and screen["mention_count"] == 2
     assert screen["mean_score"] == 3.0
     assert screen["distribution"] == {"1": 1, "2": 0, "3": 0, "4": 0, "5": 1}
 
@@ -253,7 +259,7 @@ async def test_full_flow(client, llm):
     assert 'filename="reviews-analysis-galaxy-s24.csv"' in export.headers["content-disposition"]
     assert export.headers["cache-control"] == "no-store"
     table = list(csv.reader(io.StringIO(export.content.decode("utf-8-sig"))))
-    assert table[0] == ["row", "text", "status", "battery life", "screen"]
+    assert table[0] == ["row", "text", "status", "Battery Life", "Screen"]
     assert table[1] == ["1", "Great battery life and a great screen", "done", "5", "5"]
     assert table[2] == ["2", "The screen is terrible", "done", "", "1"]
     assert table[3] == ["3", "Shipping was quick", "done", "", ""]
@@ -311,6 +317,53 @@ async def test_llm_outage_fails_the_job_cleanly(client, llm):
     assert job["done"] < job["total"]
 
 
+async def test_stopping_an_analysis_stops_calling_the_llm(client, llm):
+    session_id = await upload(client, "text\n" + "great screen\n" * 20)
+    await confirm(client, session_id)
+    llm.gate = asyncio.Event()  # every LLM call hangs until released
+    response = await client.post(f"{API}/sessions/{session_id}/analyze")
+    assert response.status_code == 202
+    while llm.inflight == 0:
+        await asyncio.sleep(0)
+
+    stopped = await client.post(f"{API}/sessions/{session_id}/job/stop")
+    assert stopped.status_code == 200, stopped.text
+    job = stopped.json()
+    assert job["status"] == "failed"
+    assert job["error"] == "You stopped the analysis."
+    assert job["done"] < job["total"]
+    assert llm.inflight == 0  # the requests in flight were aborted
+    calls = len(llm.calls)
+
+    llm.gate.set()
+    await asyncio.sleep(0.05)
+    assert len(llm.calls) == calls  # and no new ones were sent
+    assert (await client.get(f"{API}/sessions/{session_id}/job")).json() == job
+
+    llm.gate = None  # the session can be analyzed again
+    assert (await analyze(client, session_id))["status"] == "completed"
+
+
+async def test_stopping_when_nothing_runs_is_a_conflict(client):
+    session_id = await upload(client)
+    await confirm(client, session_id)
+    assert (await client.post(f"{API}/sessions/{session_id}/job/stop")).status_code == 409
+    await analyze(client, session_id)  # finished: nothing left to stop
+    assert (await client.post(f"{API}/sessions/{session_id}/job/stop")).status_code == 409
+
+
+async def test_shutdown_interrupts_running_analyses(client, llm):
+    session_id = await upload(client)
+    await confirm(client, session_id)
+    llm.gate = asyncio.Event()
+    await client.post(f"{API}/sessions/{session_id}/analyze")
+    while llm.inflight == 0:
+        await asyncio.sleep(0)
+    await main.app.state.analysis_tasks.shutdown()
+    job = (await client.get(f"{API}/sessions/{session_id}/job")).json()
+    assert (job["status"], job["error"]) == ("failed", "Interrupted")
+
+
 async def _insert_active_job(client, session_id):
     async with client.db.session() as s:
         s.add(Job(session_id=session_id, status="running", total=1))
@@ -337,7 +390,7 @@ async def test_changing_the_product_discards_old_results(client):
     await confirm(client, session_id, aspects=("screen", "price"))
     assert (await client.get(f"{API}/sessions/{session_id}/job")).status_code == 404
     results = (await client.get(f"{API}/sessions/{session_id}/results")).json()
-    assert [a["aspect"] for a in results["aspects"]] == ["screen", "price"]
+    assert [a["aspect"] for a in results["aspects"]] == ["Screen", "Price"]
     assert results["analyzed_count"] == 0
     async with client.db.session() as s:
         assert await s.scalar(select(func.count()).select_from(Score)) == 0

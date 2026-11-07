@@ -11,14 +11,7 @@ vi.mock('./lazyChart', () => ({
 describe('ResultsStep when the chart cannot be loaded', () => {
   it('says so and still shows the numbers', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {}) // React logs the caught error
-    render(
-      <ResultsStep
-        sessionId={SESSION_ID}
-        results={RESULTS}
-        onEdit={() => {}}
-        onRestart={() => {}}
-      />,
-    )
+    render(<ResultsStep sessionId={SESSION_ID} results={RESULTS} onEdit={() => {}} />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/chart could not be loaded/i)
     expect(screen.getByRole('table')).toBeInTheDocument()

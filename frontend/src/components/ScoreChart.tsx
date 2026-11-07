@@ -11,7 +11,7 @@ import {
   type XAxisTickContentProps,
 } from 'recharts'
 import type { AspectResult } from '../api'
-import { SCORE_STOPS, scoreColor, wrapLabel } from '../format'
+import { SCORE_STOPS, plural, scoreColor, wrapLabel } from '../format'
 import { useColorScheme } from '../theme'
 
 interface Datum {
@@ -66,21 +66,21 @@ function ChartTooltip({
       <div>
         {datum.mean === null ? 'Not mentioned' : `Average ${datum.mean.toFixed(2)} out of 5`}
       </div>
-      <div>
-        {datum.mentions} mention{datum.mentions === 1 ? '' : 's'}
-      </div>
+      <div>{plural(datum.mentions, 'mention')}</div>
     </div>
   )
 }
 
+const toDatum = (item: AspectResult): Datum => ({
+  aspect: item.aspect,
+  mean: item.mean_score,
+  mentions: item.mention_count,
+  label: item.mean_score === null ? '' : item.mean_score.toFixed(1),
+})
+
 export function ScoreChart({ aspects }: { aspects: AspectResult[] }) {
   const scheme = useColorScheme()
-  const data: Datum[] = aspects.map((item) => ({
-    aspect: item.aspect,
-    mean: item.mean_score,
-    mentions: item.mention_count,
-    label: item.mean_score === null ? '' : item.mean_score.toFixed(1),
-  }))
+  const data = aspects.map(toDatum)
 
   return (
     <>

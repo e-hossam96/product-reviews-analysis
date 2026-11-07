@@ -1,10 +1,23 @@
 import { useState, type ChangeEvent, type DragEvent } from 'react'
 import { createSession, describeError, type AppConfig, type SessionCreated } from '../api'
 import { ErrorBanner } from './ErrorBanner'
+import { UploadIcon } from './icons'
+
+const BYTES_PER_MB = 1024 * 1024
 
 interface Props {
   config: AppConfig | null
   onUploaded: (created: SessionCreated, filename: string) => void
+}
+
+function validateFile(file: File, config: AppConfig | null): string | null {
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    return 'Please choose a .csv file.'
+  }
+  if (config && file.size > config.max_upload_mb * BYTES_PER_MB) {
+    return `The file is larger than the ${config.max_upload_mb} MB limit.`
+  }
+  return null
 }
 
 export function UploadStep({ config, onUploaded }: Props) {
@@ -12,16 +25,11 @@ export function UploadStep({ config, onUploaded }: Props) {
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleFile(file: File) {
-    setError(null)
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setError('Please choose a .csv file.')
-      return
-    }
-    if (config && file.size > config.max_upload_mb * 1024 * 1024) {
-      setError(`The file is larger than the ${config.max_upload_mb} MB limit.`)
-      return
-    }
+  async function upload(file: File) {
+    const invalid = validateFile(file, config)
+    setError(invalid)
+    if (invalid) return
+
     setBusy(true)
     try {
       onUploaded(await createSession(file), file.name)
@@ -35,19 +43,24 @@ export function UploadStep({ config, onUploaded }: Props) {
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = '' // lets the same file be chosen again after an error
-    if (file) {
-      void handleFile(file)
-    }
+    if (file) void upload(file)
+  }
+
+  function handleDragOver(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault()
+    setDragging(true)
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault()
     setDragging(false)
     const file = event.dataTransfer.files[0]
-    if (file && !busy) {
-      void handleFile(file)
-    }
+    if (file && !busy) void upload(file)
   }
+
+  const dropzoneClass = ['dropzone', dragging && 'dragging', busy && 'busy']
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <section className="card">
@@ -58,11 +71,8 @@ export function UploadStep({ config, onUploaded }: Props) {
         {config && ` Up to ${config.max_rows} reviews and ${config.max_upload_mb} MB.`}
       </p>
       <label
-        className={`dropzone${dragging ? ' dragging' : ''}${busy ? ' busy' : ''}`}
-        onDragOver={(event) => {
-          event.preventDefault()
-          setDragging(true)
-        }}
+        className={dropzoneClass}
+        onDragOver={handleDragOver}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
       >
@@ -73,19 +83,8 @@ export function UploadStep({ config, onUploaded }: Props) {
           disabled={busy}
           onChange={handleChange}
         />
-        <span className="dropzone-icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
-          </svg>
+        <span className="dropzone-icon">
+          <UploadIcon />
         </span>
         <span className="dropzone-title">
           {busy ? 'Uploading…' : 'Choose a CSV file or drop it here'}

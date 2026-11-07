@@ -17,9 +17,9 @@ def prepare_data_directory() -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     if db_path.exists():
-        logger.info(f"Found existing database at '{db_path}' - using volume data")
+        logger.info("Found existing database at '%s' - using volume data", db_path)
     else:
-        logger.info(f"No database found at '{db_path}' - a fresh one will be created")
+        logger.info("No database found at '%s' - a fresh one will be created", db_path)
 
 
 if __name__ == "__main__":

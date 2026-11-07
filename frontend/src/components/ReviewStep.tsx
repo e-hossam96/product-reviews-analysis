@@ -1,33 +1,28 @@
-import type { AppConfig, NgramCount, ProductDetails } from '../api'
+import type { NgramCount, ProductDetails } from '../api'
+import type { ExtractionState } from '../hooks/useExtraction'
 import { ErrorBanner } from './ErrorBanner'
 import { ProductForm } from './ProductForm'
 
-export interface ExtractionView {
-  status: 'idle' | 'loading' | 'failed'
-  error: string | null
-  suggestion: { product: ProductDetails; version: number } | null
-}
-
 interface Props {
-  config: AppConfig | null
+  maxAspects: number
+  secondsPerReview: number
   filename: string
   reviewCount: number
   skippedEmpty: number
   ngrams: NgramCount[]
   /** details the user already confirmed, when coming back from the results */
   confirmed: ProductDetails | null
-  extraction: ExtractionView
+  extraction: ExtractionState
   onSuggestAgain: () => void
   onEnterManually: () => void
   onSubmit: (product: ProductDetails) => Promise<void>
 }
 
-const MAX_ASPECTS_FALLBACK = 10
-const SECONDS_PER_REVIEW_FALLBACK = 2.5
 const EMPTY: ProductDetails = { name: '', aspects: [] }
 
 export function ReviewStep({
-  config,
+  maxAspects,
+  secondsPerReview,
   filename,
   reviewCount,
   skippedEmpty,
@@ -76,9 +71,9 @@ export function ReviewStep({
           key={extraction.suggestion?.version ?? 0}
           initial={confirmed ?? extraction.suggestion?.product ?? EMPTY}
           ngrams={ngrams}
-          maxAspects={config?.max_aspects ?? MAX_ASPECTS_FALLBACK}
+          maxAspects={maxAspects}
           reviewCount={reviewCount}
-          secondsPerReview={config?.estimated_seconds_per_review ?? SECONDS_PER_REVIEW_FALLBACK}
+          secondsPerReview={secondsPerReview}
           onSuggestAgain={onSuggestAgain}
           onSubmit={onSubmit}
         />

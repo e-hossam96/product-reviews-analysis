@@ -61,7 +61,7 @@ class ReviewScores(BaseModel):
     mentions: list[AspectMention]
 
     @model_validator(mode="after")
-    def _keep_first_mention_per_aspect(self) -> "ReviewScores":
+    def _keep_first_mention_per_aspect(self) -> ReviewScores:
         seen: set[str] = set()
         unique: list[AspectMention] = []
         for mention in self.mentions:

@@ -34,7 +34,9 @@ Rules:
 Answer with JSON: {{"mentions": [{{"aspect": "...", "score": 4}}]}}"""
 
 
-def build_extraction_user_prompt(ngrams: Sequence[tuple[str, int]], samples: Sequence[str], max_ngrams: int) -> str:
+def build_extraction_user_prompt(
+    ngrams: Sequence[tuple[str, int]], samples: Sequence[str], max_ngrams: int
+) -> str:
     phrases = "\n".join(f"- {gram} ({count})" for gram, count in ngrams[:max_ngrams])
     reviews = "\n".join(f"{i}. {text}" for i, text in enumerate(samples, start=1))
     return (

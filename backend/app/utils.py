@@ -40,7 +40,9 @@ def setup_logger(name: str = __name__, log_level: str = "INFO") -> logging.Logge
 
         Path("logs").mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(f"logs/{name}.log", encoding="utf-8")
-        file_handler.setFormatter(logging.Formatter(f"{name.upper()} | %(asctime)s | %(levelname)s | %(message)s"))
+        file_handler.setFormatter(
+            logging.Formatter(f"{name.upper()} | %(asctime)s | %(levelname)s | %(message)s")
+        )
         file_handler.setLevel(level)
         logger.addHandler(file_handler)
 

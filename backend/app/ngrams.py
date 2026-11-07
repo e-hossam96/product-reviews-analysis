@@ -5,197 +5,23 @@ from collections.abc import Iterable, Iterator
 from app.models import NgramCount
 
 # English only. Replace or extend for other languages.
-STOPWORDS = frozenset(
-    [
-        "a",
-        "about",
-        "above",
-        "after",
-        "again",
-        "against",
-        "all",
-        "am",
-        "an",
-        "and",
-        "any",
-        "are",
-        "aren't",
-        "as",
-        "at",
-        "be",
-        "because",
-        "been",
-        "before",
-        "being",
-        "below",
-        "between",
-        "both",
-        "but",
-        "by",
-        "can",
-        "can't",
-        "cannot",
-        "could",
-        "couldn't",
-        "did",
-        "didn't",
-        "do",
-        "does",
-        "doesn't",
-        "doing",
-        "don't",
-        "down",
-        "during",
-        "each",
-        "few",
-        "for",
-        "from",
-        "further",
-        "had",
-        "hadn't",
-        "has",
-        "hasn't",
-        "have",
-        "haven't",
-        "having",
-        "he",
-        "he'd",
-        "he'll",
-        "he's",
-        "her",
-        "here",
-        "here's",
-        "hers",
-        "herself",
-        "him",
-        "himself",
-        "his",
-        "how",
-        "how's",
-        "i",
-        "i'd",
-        "i'll",
-        "i'm",
-        "i've",
-        "if",
-        "in",
-        "into",
-        "is",
-        "isn't",
-        "it",
-        "it's",
-        "its",
-        "itself",
-        "let's",
-        "me",
-        "more",
-        "most",
-        "mustn't",
-        "my",
-        "myself",
-        "no",
-        "nor",
-        "not",
-        "of",
-        "off",
-        "on",
-        "once",
-        "only",
-        "or",
-        "other",
-        "ought",
-        "our",
-        "ours",
-        "ourselves",
-        "out",
-        "over",
-        "own",
-        "same",
-        "shan't",
-        "she",
-        "she'd",
-        "she'll",
-        "she's",
-        "should",
-        "shouldn't",
-        "so",
-        "some",
-        "such",
-        "than",
-        "that",
-        "that's",
-        "the",
-        "their",
-        "theirs",
-        "them",
-        "themselves",
-        "then",
-        "there",
-        "there's",
-        "these",
-        "they",
-        "they'd",
-        "they'll",
-        "they're",
-        "they've",
-        "this",
-        "those",
-        "through",
-        "to",
-        "too",
-        "under",
-        "until",
-        "up",
-        "very",
-        "was",
-        "wasn't",
-        "we",
-        "we'd",
-        "we'll",
-        "we're",
-        "we've",
-        "were",
-        "weren't",
-        "what",
-        "what's",
-        "when",
-        "when's",
-        "where",
-        "where's",
-        "which",
-        "while",
-        "who",
-        "who's",
-        "whom",
-        "why",
-        "why's",
-        "will",
-        "with",
-        "won't",
-        "would",
-        "wouldn't",
-        "you",
-        "you'd",
-        "you'll",
-        "you're",
-        "you've",
-        "your",
-        "yours",
-        "yourself",
-        "yourselves",
-        "also",
-        "just",
-        "really",
-        "get",
-        "got",
-        "one",
-        "even",
-        "still",
-        "much",
-        "many",
-        "well",
-    ]
-)
+_ENGLISH_STOPWORDS = """
+    a about above after again against all am an and any are aren't as at be because been
+    before being below between both but by can can't cannot could couldn't did didn't do
+    does doesn't doing don't down during each few for from further had hadn't has hasn't
+    have haven't having he he'd he'll he's her here here's hers herself him himself his
+    how how's i i'd i'll i'm i've if in into is isn't it it's its itself let's me more
+    most mustn't my myself no nor not of off on once only or other ought our ours
+    ourselves out over own same shan't she she'd she'll she's should shouldn't so some
+    such than that that's the their theirs them themselves then there there's these they
+    they'd they'll they're they've this those through to too under until up very was
+    wasn't we we'd we'll we're we've were weren't what what's when when's where where's
+    which while who who's whom why why's will with won't would wouldn't you you'd you'll
+    you're you've your yours yourself yourselves
+"""
+_REVIEW_FILLER_WORDS = "also just really get got one even still much many well"
+
+STOPWORDS = frozenset(_ENGLISH_STOPWORDS.split() + _REVIEW_FILLER_WORDS.split())
 
 _SEGMENT_SPLIT_RE = re.compile(r"[^\w\s'-]+")  # punctuation ends a segment
 _TOKEN_RE = re.compile(r"[^\W_]+(?:['-][^\W_]+)*")
@@ -243,21 +69,26 @@ def top_ngrams(
     min_count: int = 2,
 ) -> list[NgramCount]:
     counts = count_ngrams(texts, max_n)
-    candidates = [(gram, c, gram.count(" ") + 1) for gram, c in counts.items() if c >= min_count]
-    candidates.sort(key=lambda t: (-t[1], -t[2], t[0]))  # count, longer, alphabetical
+    candidates = [
+        (gram, count, gram.count(" ") + 1) for gram, count in counts.items() if count >= min_count
+    ]
+    candidates.sort(key=lambda c: (-c[1], -c[2], c[0]))  # most reviews, longer, alphabetical
     window = candidates[: top_k * _CANDIDATE_FACTOR]
 
-    by_count: dict[int, list[tuple[str, int]]] = defaultdict(list)
-    for gram, c, n in window:
-        by_count[c].append((f" {gram} ", n))
+    padded_by_count: dict[int, list[tuple[str, int]]] = defaultdict(list)
+    for gram, count, length in window:
+        padded_by_count[count].append((f" {gram} ", length))
 
     result: list[NgramCount] = []
-    for gram, c, n in window:
+    for gram, count, length in window:
         padded = f" {gram} "
         # drop a phrase that sits inside a longer one with the same review count
-        if any(other_n > n and padded in other for other, other_n in by_count[c]):
+        if any(
+            other_length > length and padded in other
+            for other, other_length in padded_by_count[count]
+        ):
             continue
-        result.append(NgramCount(ngram=gram, count=c))
+        result.append(NgramCount(ngram=gram, count=count))
         if len(result) == top_k:
             break
     return result

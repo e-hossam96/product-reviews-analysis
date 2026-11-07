@@ -1,18 +1,27 @@
 import { useCallback, useRef, useState } from 'react'
 import { describeError, extractProduct, type ProductDetails } from '../api'
 
-type Status = 'idle' | 'loading' | 'failed'
-
 export interface Suggestion {
   product: ProductDetails
   /** changes with every new suggestion, so a form can be reset with it as its key */
   version: number
 }
 
+export interface ExtractionState {
+  status: 'idle' | 'loading' | 'failed'
+  error: string | null
+  suggestion: Suggestion | null
+}
+
+const nextSuggestion = (product: ProductDetails) => (previous: Suggestion | null) => ({
+  product,
+  version: (previous?.version ?? 0) + 1,
+})
+
 /** Asks the backend to suggest product details, ignoring answers that arrive late. */
 export function useExtraction() {
   const latestRun = useRef(0)
-  const [status, setStatus] = useState<Status>('idle')
+  const [status, setStatus] = useState<ExtractionState['status']>('idle')
   const [error, setError] = useState<string | null>(null)
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null)
 
@@ -23,7 +32,7 @@ export function useExtraction() {
     try {
       const product = await extractProduct(sessionId)
       if (run !== latestRun.current) return
-      setSuggestion((previous) => ({ product, version: (previous?.version ?? 0) + 1 }))
+      setSuggestion(nextSuggestion(product))
       setStatus('idle')
     } catch (e) {
       if (run !== latestRun.current) return
@@ -42,7 +51,7 @@ export function useExtraction() {
   /** Use details that are already saved on the server, without asking the model. */
   const provide = useCallback((product: ProductDetails) => {
     latestRun.current++
-    setSuggestion((previous) => ({ product, version: (previous?.version ?? 0) + 1 }))
+    setSuggestion(nextSuggestion(product))
     setStatus('idle')
     setError(null)
   }, [])

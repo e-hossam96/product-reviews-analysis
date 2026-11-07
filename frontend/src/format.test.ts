@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SCORE_STOPS, formatDuration, scoreColor, truncate, wrapLabel } from './format'
+import { SCORE_STOPS, formatDuration, plural, scoreColor, wrapLabel } from './format'
 
 describe('wrapLabel', () => {
   it('keeps a label that fits on one line', () => {
@@ -37,11 +37,11 @@ describe('formatDuration', () => {
   })
 })
 
-describe('truncate', () => {
-  it('keeps short text and shortens long text with an ellipsis', () => {
-    expect(truncate('screen', 16)).toBe('screen')
-    expect(truncate('wireless charging speed', 16)).toBe('wireless chargi…')
-    expect(truncate('a'.repeat(16), 16)).toBe('a'.repeat(16))
+describe('plural', () => {
+  it('adds an s unless the count is one', () => {
+    expect(plural(1, 'review')).toBe('1 review')
+    expect(plural(0, 'review')).toBe('0 reviews')
+    expect(plural(3, 'mention')).toBe('3 mentions')
   })
 })
 

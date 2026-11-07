@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import ProductDetails, extract_product_details
-from app.api.deps import DbDep, SessionId, SessionRequired, llm_errors
+from app.api.deps import DbDep, SessionId, SessionRequired, fetch_session, llm_errors
 from app.core.config import get_settings
 from app.core.limiter import limiter
 from app.database.models import AnalysisSession, Review
@@ -12,6 +13,7 @@ from app.models import (
     ConfirmProductRequest,
     ConfirmProductResponse,
     ExtractResponse,
+    NgramCount,
     SessionCreateResponse,
     SessionStateResponse,
 )
@@ -22,27 +24,38 @@ from app.utils import logger
 router = APIRouter()
 settings = get_settings()
 
-_BUSY = "An analysis is running for this session. Wait for it to finish."
+
+def _top_ngrams(texts: list[str]) -> list[NgramCount]:
+    return top_ngrams(
+        texts, max_n=settings.analysis.ngram_max_n, top_k=settings.analysis.ngram_top_k
+    )
 
 
-@router.post(
-    "/sessions", response_model=SessionCreateResponse, status_code=status.HTTP_201_CREATED
-)
+async def _review_texts(s: AsyncSession, session_id: str) -> list[str]:
+    texts = await s.scalars(
+        select(Review.text).where(Review.session_id == session_id).order_by(Review.row_index)
+    )
+    return list(texts)
+
+
+async def _ensure_idle(s: AsyncSession, session_id: str) -> None:
+    if await has_active_job(s, session_id):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "An analysis is running for this session. Wait for it to finish.",
+        )
+
+
+@router.post("/sessions", response_model=SessionCreateResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit(settings.rate_limit.upload_rate_limit)
-async def create_session(
-    request: Request, file: UploadFile, db: DbDep
-) -> SessionCreateResponse:
+async def create_session(request: Request, file: UploadFile, db: DbDep) -> SessionCreateResponse:
     max_bytes = settings.session.max_upload_mb * 1024 * 1024
     data = await file.read(max_bytes + 1)  # never buffer more than the limit
     try:
         parsed = parse_reviews(data, max_rows=settings.session.max_rows, max_bytes=max_bytes)
     except IngestError as e:
-        raise HTTPException(422, str(e)) from e
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e)) from e
 
-    texts = [r.text for r in parsed.reviews]
-    grams = top_ngrams(
-        texts, max_n=settings.analysis.ngram_max_n, top_k=settings.analysis.ngram_top_k
-    )
     async with db.session() as s:
         session = AnalysisSession(source_filename=(file.filename or "")[-255:] or None)
         s.add(session)
@@ -51,17 +64,17 @@ async def create_session(
             Review(session_id=session.id, row_index=r.row_index, text=r.text)
             for r in parsed.reviews
         )
-        session_id = session.id
+
     logger.info(
         "Session created | reviews=%d skipped_empty=%d",
         len(parsed.reviews),
         parsed.skipped_empty,
     )
     return SessionCreateResponse(
-        session_id=session_id,
+        session_id=session.id,
         review_count=len(parsed.reviews),
         skipped_empty=parsed.skipped_empty,
-        top_ngrams=grams,
+        top_ngrams=_top_ngrams([r.text for r in parsed.reviews]),
     )
 
 
@@ -72,30 +85,16 @@ async def get_session_state(
 ) -> SessionStateResponse:
     """Where the session stands, so a reloaded page can pick up where it left off."""
     async with db.session() as s:
-        row = await s.get(AnalysisSession, session_id)
-        if row is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found or expired")
-        texts = list(
-            (
-                await s.scalars(
-                    select(Review.text)
-                    .where(Review.session_id == session_id)
-                    .order_by(Review.row_index)
-                )
-            ).all()
-        )
+        session = await fetch_session(s, session_id)
+        texts = await _review_texts(s, session_id)
         job = await get_latest_job(s, session_id)
 
     return SessionStateResponse(
-        filename=row.source_filename,
+        filename=session.source_filename,
         review_count=len(texts),
-        top_ngrams=top_ngrams(
-            texts,
-            max_n=settings.analysis.ngram_max_n,
-            top_k=settings.analysis.ngram_top_k,
-        ),
-        product=ProductDetails.model_validate(row.product) if row.product else None,
-        product_confirmed=row.product_confirmed,
+        top_ngrams=_top_ngrams(texts),
+        product=ProductDetails.model_validate(session.product) if session.product else None,
+        product_confirmed=session.product_confirmed,
         job=job_response(job) if job else None,
     )
 
@@ -106,25 +105,12 @@ async def get_session_state(
     dependencies=[SessionRequired],
 )
 @limiter.limit(settings.rate_limit.extract_rate_limit)
-async def extract_product(
-    request: Request, session_id: SessionId, db: DbDep
-) -> ExtractResponse:
+async def extract_product(request: Request, session_id: SessionId, db: DbDep) -> ExtractResponse:
     async with db.session() as s:
-        if await has_active_job(s, session_id):
-            raise HTTPException(status.HTTP_409_CONFLICT, _BUSY)
-        texts = list(
-            (
-                await s.scalars(
-                    select(Review.text)
-                    .where(Review.session_id == session_id)
-                    .order_by(Review.row_index)
-                )
-            ).all()
-        )
+        await _ensure_idle(s, session_id)
+        texts = await _review_texts(s, session_id)
 
-    grams = top_ngrams(
-        texts, max_n=settings.analysis.ngram_max_n, top_k=settings.analysis.ngram_top_k
-    )
+    grams = _top_ngrams(texts)
     samples = sample_reviews(
         texts,
         k=settings.analysis.extraction_sample_size,
@@ -141,15 +127,13 @@ async def extract_product(
             request_kwargs=call_kwargs("extract"),
         )
 
+    # The session may have expired or started an analysis while the LLM was busy.
     async with db.session() as s:
-        row = await s.get(AnalysisSession, session_id)
-        if row is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found or expired")
-        if await has_active_job(s, session_id):
-            raise HTTPException(status.HTTP_409_CONFLICT, _BUSY)
+        session = await fetch_session(s, session_id)
+        await _ensure_idle(s, session_id)
         await invalidate_analysis(s, session_id)
-        row.product = product.model_dump()
-        row.product_confirmed = False
+        session.product = product.model_dump()
+        session.product_confirmed = False
     return ExtractResponse(product=product)
 
 
@@ -161,17 +145,16 @@ async def confirm_product(
     body: ConfirmProductRequest,
     db: DbDep,
 ) -> ConfirmProductResponse:
-    """Save the user's confirmed product details. Also works without a prior extract,
-    so the user can type the details in by hand."""
-    new_product: ProductDetails = body.product
+    """Save the user's confirmed product details.
+
+    Also works without a prior extract, so the user can type the details in by hand.
+    """
+    product = body.product.model_dump()
     async with db.session() as s:
-        row = await s.get(AnalysisSession, session_id)
-        if row is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found or expired")
-        if await has_active_job(s, session_id):
-            raise HTTPException(status.HTTP_409_CONFLICT, _BUSY)
-        if row.product != new_product.model_dump():
+        session = await fetch_session(s, session_id)
+        await _ensure_idle(s, session_id)
+        if session.product != product:
             await invalidate_analysis(s, session_id)  # earlier scores are now stale
-        row.product = new_product.model_dump()
-        row.product_confirmed = True
-    return ConfirmProductResponse(product=new_product)
+        session.product = product
+        session.product_confirmed = True
+    return ConfirmProductResponse(product=body.product)

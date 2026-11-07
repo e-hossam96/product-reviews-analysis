@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -46,7 +46,7 @@ class ReviewStatus(StrEnum):
 
 def utcnow() -> datetime:
     # SQLite drops tzinfo, so everything is stored as UTC and compared as UTC.
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_session_id() -> str:
@@ -62,7 +62,9 @@ class AnalysisSession(Base):
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=new_session_id)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, index=True
+    )
     source_filename: Mapped[str | None] = mapped_column(String(255))
     # ProductDetails as JSON; SQL NULL until extracted
     product: Mapped[dict[str, Any] | None] = mapped_column(JSON(none_as_null=True))
@@ -101,7 +103,9 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_job_id)
-    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("sessions.id", ondelete="CASCADE"), index=True
+    )
     status: Mapped[str] = mapped_column(String(16), default=JobStatus.PENDING.value)
     total: Mapped[int] = mapped_column(Integer, default=0)
     done: Mapped[int] = mapped_column(Integer, default=0)

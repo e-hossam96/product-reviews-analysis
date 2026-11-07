@@ -4,6 +4,7 @@ from typing import Annotated
 
 import openai
 from fastapi import Depends, HTTPException, Path, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import LLMOutputError
 from app.database.client import DatabaseClient
@@ -21,15 +22,20 @@ def get_db(request: Request) -> DatabaseClient:
 DbDep = Annotated[DatabaseClient, Depends(get_db)]
 
 
-async def get_session(session_id: SessionId, db: DbDep) -> AnalysisSession:
-    async with db.session() as s:
-        session = await s.get(AnalysisSession, session_id)
+async def fetch_session(s: AsyncSession, session_id: str) -> AnalysisSession:
+    session = await s.get(AnalysisSession, session_id)
     if session is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found or expired")
     return session
 
 
+async def get_session(session_id: SessionId, db: DbDep) -> AnalysisSession:
+    async with db.session() as s:
+        return await fetch_session(s, session_id)
+
+
 SessionRequired = Depends(get_session)
+SessionDep = Annotated[AnalysisSession, SessionRequired]
 
 
 @contextmanager
@@ -51,4 +57,6 @@ def llm_errors() -> Iterator[None]:
         ) from e
     except openai.OpenAIError as e:
         logger.error("LLM request failed: %s", e)
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "The language model request failed.") from e
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, "The language model request failed."
+        ) from e

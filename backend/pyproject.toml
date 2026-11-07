@@ -16,6 +16,9 @@ dependencies = [
   "uvicorn[standard]>=0.54.0",
 ]
 
+[tool.ruff]
+line-length = 100
+
 [tool.alembic]
 script_location = "%(here)s/migrations"
 file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s"

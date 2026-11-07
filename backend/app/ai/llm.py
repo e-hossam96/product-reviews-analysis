@@ -1,13 +1,11 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any
 
 from openai import AsyncOpenAI, LengthFinishReasonError
 from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
-
-T = TypeVar("T", bound=BaseModel)
 
 RETRY_TEMPERATURE = 0.3
 
@@ -38,7 +36,9 @@ async def parse_structured[T: BaseModel](
     last_error: Exception | None = None
     for attempt in range(retries + 1):
         # temperature 0 + the same seed would just repeat the same bad answer
-        temperature = params.temperature if attempt == 0 else max(params.temperature, RETRY_TEMPERATURE)
+        temperature = (
+            params.temperature if attempt == 0 else max(params.temperature, RETRY_TEMPERATURE)
+        )
         try:
             completion = await client.chat.completions.parse(
                 model=params.model,
@@ -63,4 +63,6 @@ async def parse_structured[T: BaseModel](
         last_error = ValueError(message.refusal or "empty response")
         logger.warning("No parsed LLM output (attempt %d): %s", attempt + 1, last_error)
 
-    raise LLMOutputError(f"No valid output after {retries + 1} attempt(s): {last_error}") from last_error
+    raise LLMOutputError(
+        f"No valid output after {retries + 1} attempt(s): {last_error}"
+    ) from last_error

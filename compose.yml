@@ -31,8 +31,11 @@ services:
     volumes:
       - backend-data:/app/backend/data
       - backend-logs:/app/backend/logs
+    # app: reached by the frontend. llm: reaches llamacpp, and the internet
+    # (Langfuse tracing).
     networks:
-      - default
+      - app
+      - llm
 
   frontend:
     image: reviews-analysis-frontend:${APPLICATION_VERSION:-latest}
@@ -46,8 +49,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    # Not on llm, so llamacpp is unreachable from here
     networks:
-      - default
+      - public
+      - app
 
   llamacpp:
     image: ghcr.io/ggml-org/llama.cpp:server-b9744
@@ -81,16 +86,33 @@ services:
       timeout: 10s
       retries: 5
       start_period: 360s
+    # Shared with the backend only. Not internal: the model is downloaded at startup.
     networks:
-      - default
+      - llm
 
 networks:
-  default:
-    name: reviews-network
+  # Edge: frontend (+ Caddy in prod)
+  public:
+    name: reviews-public
     driver: bridge
     ipam:
       config:
         - subnet: 172.30.0.0/24
+  # frontend -> backend. Internal: no internet access through it.
+  app:
+    name: reviews-app
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.1.0/24
+  # backend -> llamacpp
+  llm:
+    name: reviews-llm
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.2.0/24
 
 volumes:
   # Same name the earlier `docker run` experiments used, so the model that is

@@ -14,7 +14,7 @@ services:
     depends_on:
       - frontend
     networks:
-      - default
+      - public # frontend only: Caddy can't reach the backend or llamacpp
 
   frontend:
     ports: !reset [] # only Caddy is reachable from outside now

@@ -65,7 +65,56 @@ body {
 .app {
   max-width: 920px;
   margin: 0 auto;
-  padding: 28px 16px 72px;
+  padding: 28px 16px 32px;
+}
+
+/* footer */
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.footer-credit {
+  margin: 0;
+}
+
+.footer-credit strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--accent);
+  font-weight: 550;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.footer-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.footer-link:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* header */

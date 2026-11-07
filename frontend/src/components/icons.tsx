@@ -51,6 +51,13 @@ export const SunIcon = () => (
   </Icon>
 )
 
+export const LinkedInIcon = () => (
+  <Icon>
+    <rect x="2.5" y="2.5" width="19" height="19" rx="4" />
+    <path d="M7.5 10.5v6M7.5 7.5v.01M11.5 16.5v-6M11.5 13.5a2.5 2.5 0 0 1 5 0v3" />
+  </Icon>
+)
+
 export const MoonIcon = () => (
   <Icon>
     <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />

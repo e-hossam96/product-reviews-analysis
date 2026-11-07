@@ -14,6 +14,7 @@ import {
   type SessionCreated,
   type SessionState,
 } from './api'
+import { AppFooter } from './components/AppFooter'
 import { AppHeader } from './components/AppHeader'
 import { ErrorBanner } from './components/ErrorBanner'
 import { loadChart } from './components/lazyChart'
@@ -272,6 +273,7 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
           <ResultsStep sessionId={session.id} results={results} onEdit={() => setStep('review')} />
         )}
       </main>
+      <AppFooter />
     </div>
   )
 }

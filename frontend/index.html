@@ -3,9 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f6fa" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1119" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Product reviews analysis</title>
+    <script>
+      // Apply a pinned light/dark choice before the first paint (see src/theme.ts).
+      try {
+        var theme = localStorage.getItem('reviews-analysis.theme')
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

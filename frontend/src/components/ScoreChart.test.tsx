@@ -50,6 +50,30 @@ describe('ScoreChart', () => {
     expect(labels).toEqual(expect.arrayContaining(['4.5', '2.0']))
   })
 
+  it('wraps long aspect names onto several lines instead of cutting them off', () => {
+    const { container } = render(
+      <ScoreChart
+        aspects={[
+          aspect('battery life', 4.5, 4),
+          aspect('wireless charging speed and reliability', 2, 3),
+          aspect('screen', 3, 2),
+          aspect('price', 4, 2),
+          aspect('sound', 4, 2),
+          aspect('camera', 4, 2),
+        ]}
+      />,
+    )
+    const ticks = container.querySelectorAll(
+      '.recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value',
+    )
+    const long = [...ticks].find((tick) =>
+      tick.querySelector('title')?.textContent?.startsWith('wireless'),
+    )
+    const lines = [...long!.querySelectorAll('tspan')].map((line) => line.textContent)
+    expect(lines.length).toBeGreaterThan(1)
+    expect(lines.join(' ')).toMatch(/^wireless charging/)
+  })
+
   it('has one tick per aspect on the x axis and 0 to 5 on the y axis', () => {
     const { container } = render(
       <ScoreChart aspects={[aspect('battery life', 4.5, 4), aspect('screen', 2, 3)]} />,

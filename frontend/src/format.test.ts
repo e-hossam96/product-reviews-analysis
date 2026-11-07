@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, scoreColor, truncate } from './format'
+import { SCORE_STOPS, formatDuration, scoreColor, truncate, wrapLabel } from './format'
+
+describe('wrapLabel', () => {
+  it('keeps a label that fits on one line', () => {
+    expect(wrapLabel('screen', 12, 3)).toEqual(['screen'])
+  })
+
+  it('breaks at spaces', () => {
+    expect(wrapLabel('wireless charging speed', 12, 3)).toEqual(['wireless', 'charging', 'speed'])
+    expect(wrapLabel('battery life', 12, 3)).toEqual(['battery life'])
+  })
+
+  it('cuts a word longer than a line', () => {
+    expect(wrapLabel('noisecancellation', 8, 3)).toEqual(['noisecan', 'cellatio', 'n'])
+  })
+
+  it('ends with an ellipsis when the label needs more lines than allowed', () => {
+    expect(wrapLabel('one two three four five', 5, 2)).toEqual(['one', 'two…'])
+    expect(wrapLabel('aaaaa bbbbb ccccc', 5, 2)).toEqual(['aaaaa', 'bbbb…'])
+  })
+
+  it('always shows at least one character per line', () => {
+    expect(wrapLabel('ab', 0, 3)).toEqual(['a', 'b'])
+  })
+})
 
 describe('formatDuration', () => {
   it('says "under a minute" below one minute', () => {
@@ -22,15 +46,13 @@ describe('truncate', () => {
 })
 
 describe('scoreColor', () => {
-  it('runs from red at 1 through amber at 3 to green at 5', () => {
-    expect(scoreColor(1)).toBe('#c62828')
-    expect(scoreColor(3)).toBe('#a15c00')
-    expect(scoreColor(5)).toBe('#2e7d32')
+  it('runs from red at 1 through neutral gray at 3 to blue at 5, in both themes', () => {
+    expect([1, 2, 3, 4, 5].map((score) => scoreColor(score))).toEqual(SCORE_STOPS.light)
+    expect([1, 2, 3, 4, 5].map((score) => scoreColor(score, 'dark'))).toEqual(SCORE_STOPS.dark)
   })
 
-  it('blends between those colors', () => {
-    expect(scoreColor(2)).toBe('#b44214') // halfway from red to amber
-    expect(scoreColor(4)).toBe('#686d19') // halfway from amber to green
+  it('blends between neighbouring stops', () => {
+    expect(scoreColor(2.5)).toBe('#ad7a82') // halfway from #d0646a to #8a8f99
   })
 
   it('stays inside the range for odd input', () => {

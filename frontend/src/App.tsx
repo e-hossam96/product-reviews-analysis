@@ -20,6 +20,7 @@ import { ProgressStep } from './components/ProgressStep'
 import { ResultsStep } from './components/ResultsStep'
 import { ReviewStep } from './components/ReviewStep'
 import { Stepper, type Step } from './components/Stepper'
+import { ThemeToggle } from './components/ThemeToggle'
 import { UploadStep } from './components/UploadStep'
 import { useExtraction } from './hooks/useExtraction'
 import { clearSessionId, loadSessionId, saveSessionId } from './sessionStore'
@@ -202,19 +203,55 @@ export default function App({ pollIntervalMs = 1000 }: { pollIntervalMs?: number
 
   return (
     <div className="app">
-      <header>
+      <header className="app-header">
         <div className="app-title">
-          <h1>Product reviews analysis</h1>
-          {step !== 'upload' && (
-            <button type="button" className="link-button" onClick={handleRestart}>
-              Start over
-            </button>
-          )}
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+              </svg>
+            </span>
+            <div>
+              <h1>Product reviews analysis</h1>
+              <p className="brand-tagline">See what customers say about each aspect</p>
+            </div>
+          </div>
+          <div className="header-actions">
+            {step !== 'upload' && (
+              <button type="button" className="link-button" onClick={handleRestart}>
+                Start over
+              </button>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
         <Stepper current={step} />
         {config?.tracing_enabled && (
           <p className="notice" role="note">
-            <span aria-hidden="true">ⓘ</span> {TRACING_NOTICE}
+            <svg
+              className="notice-icon"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9.5" />
+              <path d="M12 11v5.5M12 7.5v.01" strokeWidth="2.4" />
+            </svg>
+            {TRACING_NOTICE}
           </p>
         )}
       </header>

@@ -1,30 +1,49 @@
-/* Light theme. Every text color below is at least 4.5:1 against the background it sits on,
+/* Theme. Every color is written as light-dark(<light>, <dark>): the browser picks one from
+   the color-scheme below, which follows the system unless the user pinned a theme
+   (<html data-theme="light|dark">, set by ThemeToggle and by the script in index.html).
+   In both themes every text color is at least 4.5:1 against the background it sits on,
    and every border or outline that marks a control is at least 3:1 (checked in theme.test.ts). */
 :root {
-  color-scheme: light;
-  --bg: #f4f6fa;
-  --card: #ffffff;
-  --text: #1a2233;
-  --muted: #556275;
-  --border: #d5dbe5; /* dividers and card edges, not controls */
-  --border-strong: #7c8aa0; /* inputs, drop zone, step markers */
-  --accent: #2c4bd0;
-  --accent-hover: #2240b4;
-  --accent-text: #ffffff;
-  --accent-soft: #e8edff;
-  --danger-bg: #fdecec;
-  --danger-text: #8f1d1d;
-  --warn-bg: #fff4d6;
-  --warn-text: #6b4700;
-  --info-bg: #e6f0fb;
-  --info-text: #154a7d;
+  color-scheme: light dark;
+  --bg: light-dark(#f4f6fa, #0d1119);
+  --bg-glow: light-dark(#e3e9ff, #18203a); /* soft tint behind the header */
+  --card: light-dark(#ffffff, #151b27);
+  --surface: light-dark(#f7f8fc, #1b2231); /* table header, word cloud well */
+  --text: light-dark(#1a2233, #e6eaf2);
+  --muted: light-dark(#556275, #9ba7bb);
+  --border: light-dark(#dfe4ec, #273042); /* dividers and card edges, not controls */
+  --border-strong: light-dark(#7c8aa0, #6b7a93); /* inputs, drop zone, step markers */
+  --accent: light-dark(#2c4bd0, #8fa3ff);
+  --accent-hover: light-dark(#2240b4, #aebcff);
+  --accent-text: light-dark(#ffffff, #0d1119);
+  --accent-soft: light-dark(#e8edff, #1f2848);
+  --danger-bg: light-dark(#fdecec, #3a1c20);
+  --danger-text: light-dark(#8f1d1d, #ffb8b8);
+  --warn-bg: light-dark(#fff4d6, #332811);
+  --warn-text: light-dark(#6b4700, #f4d084);
+  --info-bg: light-dark(#e6f0fb, #13273d);
+  --info-text: light-dark(#154a7d, #a3cdfa);
+  --shadow:
+    0 1px 2px light-dark(rgb(20 30 60 / 0.06), rgb(0 0 0 / 0.4)),
+    0 8px 24px light-dark(rgb(20 30 60 / 0.06), rgb(0 0 0 / 0.25));
+  --radius: 14px;
   font-family:
+    'Inter',
     system-ui,
     -apple-system,
     'Segoe UI',
     Roboto,
     sans-serif;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {
@@ -33,39 +52,86 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 420px at 50% -120px, var(--bg-glow), transparent 70%) no-repeat,
+    var(--bg);
   color: var(--text);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .app {
-  max-width: 880px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 28px 16px 72px;
+}
+
+/* header */
+.app-header {
+  margin-bottom: 20px;
 }
 
 .app-title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: var(--accent-text);
+  box-shadow: var(--shadow);
+}
+
+.brand-tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 h1 {
-  font-size: 1.6rem;
-  margin: 0 0 16px;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 h2 {
-  font-size: 1.2rem;
-  margin: 0 0 8px;
+  font-size: 1.15rem;
+  letter-spacing: -0.005em;
+  margin: 0 0 6px;
 }
 
 code {
   background: var(--accent-soft);
   color: var(--text);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 5px;
+  font-size: 0.9em;
 }
 
 .muted {
@@ -84,9 +150,55 @@ code {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--radius);
+  padding: 24px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  animation: rise 0.25s ease both;
+}
+
+.card > p:first-of-type {
+  margin-top: 0;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* theme switch */
+.theme-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.theme-toggle button,
+.theme-toggle button:not(:disabled):hover {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.theme-toggle button:not(:disabled):hover {
+  color: var(--text);
+}
+
+.theme-toggle button[aria-pressed='true'],
+.theme-toggle button[aria-pressed='true']:not(:disabled):hover {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* stepper */
@@ -109,24 +221,40 @@ code {
 
 .stepper li + li::before {
   content: '';
-  width: 24px;
-  height: 1px;
-  background: var(--border-strong);
+  width: 28px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.stepper li.done + li::before,
+.stepper li.done + li.current::before {
+  background: var(--accent);
 }
 
 .step-number {
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 1px solid var(--border-strong);
+  border: 1.5px solid var(--border-strong);
+  background: var(--card);
   font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .stepper .current {
   color: var(--text);
   font-weight: 600;
+}
+
+.stepper .done {
+  color: var(--text);
 }
 
 .stepper .current .step-number,
@@ -136,9 +264,14 @@ code {
   color: var(--accent-text);
 }
 
+.stepper .current .step-number {
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
 /* the note about stored responses */
 .notice {
   display: inline-flex;
+  align-items: center;
   gap: 6px;
   margin: 0 0 16px;
   padding: 4px 12px;
@@ -152,20 +285,34 @@ code {
 button,
 .button {
   font: inherit;
+  font-weight: 550;
   cursor: pointer;
   border: 1px solid var(--accent);
   background: var(--accent);
   color: var(--accent-text);
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 9px 18px;
+  border-radius: 10px;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
 }
 
 button:not(:disabled):hover,
 .button:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+button:not(:disabled):active,
+.button:active {
+  transform: translateY(1px);
 }
 
 button.secondary,
@@ -184,10 +331,12 @@ button.link-button {
   border: none;
   color: var(--accent);
   padding: 0;
+  font-weight: 500;
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-button.link-button:hover {
+button.link-button:not(:disabled):hover {
   background: transparent;
   color: var(--accent-hover);
 }
@@ -210,9 +359,14 @@ input {
   color: var(--text);
   background: var(--card);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 9px 12px;
   width: 100%;
+  transition: border-color 0.15s ease;
+}
+
+input:hover {
+  border-color: var(--accent);
 }
 
 input::placeholder {
@@ -222,12 +376,13 @@ input::placeholder {
 
 .field {
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .field > span {
   display: block;
   font-weight: 600;
+  font-size: 0.925rem;
   margin-bottom: 6px;
 }
 
@@ -235,13 +390,13 @@ input::placeholder {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .inline-form {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .visually-hidden {
@@ -256,8 +411,9 @@ input::placeholder {
 /* messages */
 .banner {
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   margin: 12px 0 0;
+  border-left: 4px solid currentColor;
 }
 
 .banner.error {
@@ -274,13 +430,17 @@ input::placeholder {
 .dropzone {
   display: grid;
   place-items: center;
-  min-height: 140px;
+  gap: 6px;
+  min-height: 190px;
   border: 2px dashed var(--border-strong);
-  border-radius: 12px;
-  background: var(--card);
+  border-radius: var(--radius);
+  background: var(--surface);
   cursor: pointer;
   text-align: center;
-  padding: 16px;
+  padding: 24px 16px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .dropzone:hover,
@@ -294,6 +454,21 @@ input::placeholder {
   opacity: 0.7;
 }
 
+.dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.dropzone:hover .dropzone-icon,
+.dropzone.dragging .dropzone-icon {
+  background: var(--card);
+}
+
 .dropzone-title {
   font-weight: 600;
 }
@@ -303,10 +478,14 @@ input::placeholder {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 12px;
+  justify-content: center;
+  gap: 6px 10px;
   list-style: none;
-  padding: 0;
+  padding: 16px;
   margin: 12px 0 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 .cloud-word {
@@ -315,15 +494,11 @@ input::placeholder {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 0 10px;
+  font-weight: 500;
   line-height: 1.4;
 }
 
-.cloud-word:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
+.cloud-word:not(:disabled):hover,
 .cloud-word[aria-pressed='true'] {
   background: var(--accent-soft);
   color: var(--accent);
@@ -349,6 +524,7 @@ input::placeholder {
   border: 1px solid var(--accent);
   border-radius: 999px;
   padding: 2px 4px 2px 12px;
+  font-weight: 500;
 }
 
 .chip button,
@@ -362,17 +538,38 @@ input::placeholder {
   border-radius: 999px;
 }
 
-.chip button:hover {
+.chip button:not(:disabled):hover {
   background: var(--accent);
   color: var(--accent-text);
 }
 
 /* progress */
 progress {
+  appearance: none;
   width: 100%;
-  height: 14px;
-  margin: 8px 0;
+  height: 10px;
+  margin: 12px 0 8px;
+  border: none;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--accent-soft);
   accent-color: var(--accent);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--accent-soft);
+  border-radius: 999px;
+}
+
+progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+progress::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
 }
 
 .spinner {
@@ -394,13 +591,22 @@ progress {
   .spinner {
     animation-duration: 3s;
   }
+
+  .card {
+    animation: none;
+  }
+
+  *,
+  *::before {
+    transition: none !important;
+  }
 }
 
 /* results */
 .chart,
 .chart-placeholder {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 .chart-placeholder {
@@ -409,12 +615,29 @@ progress {
   place-items: center;
 }
 
+.score-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.score-legend-bar {
+  width: min(220px, 40vw);
+  height: 8px;
+  border-radius: 999px;
+}
+
 .chart-tooltip {
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 12px;
+  box-shadow: var(--shadow);
 }
 
 /* the chart library draws SVG with its own gray defaults; use the theme instead */
@@ -434,6 +657,9 @@ progress {
 
 .table-wrap {
   overflow-x: auto;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 table {
@@ -444,16 +670,42 @@ table {
 
 th,
 td {
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: right;
   border-bottom: 1px solid var(--border);
 }
 
 thead th {
+  background: var(--surface);
   border-bottom-color: var(--border-strong);
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+tbody tr:last-child > * {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--surface);
 }
 
 th:first-child,
 td:first-child {
   text-align: left;
+}
+
+@media (max-width: 560px) {
+  .card {
+    padding: 18px;
+  }
+
+  .stepper li + li::before {
+    width: 12px;
+  }
+
+  .brand-tagline {
+    display: none;
+  }
 }

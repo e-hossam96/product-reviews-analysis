@@ -73,6 +73,20 @@ export function UploadStep({ config, onUploaded }: Props) {
           disabled={busy}
           onChange={handleChange}
         />
+        <span className="dropzone-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
+          </svg>
+        </span>
         <span className="dropzone-title">
           {busy ? 'Uploading…' : 'Choose a CSV file or drop it here'}
         </span>

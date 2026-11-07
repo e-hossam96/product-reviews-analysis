@@ -5,16 +5,25 @@ import { scoreColor } from './format'
 import { contrastRatio } from './test/contrast'
 
 const root = /:root\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
-const tokens: Record<string, string> = Object.fromEntries(
-  [...root.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((match) => [match[1], match[2]]),
-)
+const HEX = '(#[0-9a-fA-F]{6})'
+const pairs = [
+  ...root.matchAll(
+    new RegExp(`--([\\w-]+):\\s*light-dark\\(\\s*${HEX}\\s*,\\s*${HEX}\\s*\\)\\s*;`, 'g'),
+  ),
+]
+const THEMES = {
+  light: Object.fromEntries(pairs.map((match) => [match[1], match[2]])),
+  dark: Object.fromEntries(pairs.map((match) => [match[1], match[3]])),
+} as Record<'light' | 'dark', Record<string, string>>
 
 // [text color, background] pairs that really occur in the app: WCAG AA needs 4.5:1
 const TEXT_PAIRS: [string, string][] = [
   ['text', 'bg'],
   ['text', 'card'],
+  ['text', 'surface'], // table rows on hover, word cloud
   ['muted', 'bg'],
   ['muted', 'card'],
+  ['muted', 'surface'], // table header
   ['accent', 'card'], // links, secondary buttons, selected phrases
   ['accent', 'bg'],
   ['accent', 'accent-soft'], // chips, selected phrases
@@ -28,13 +37,16 @@ const TEXT_PAIRS: [string, string][] = [
 
 // [outline or border color, what it sits on]: controls and focus rings need 3:1
 const UI_PAIRS: [string, string][] = [
-  ['border-strong', 'card'], // input borders, drop zone
+  ['border-strong', 'card'], // input borders, step markers
   ['border-strong', 'bg'],
+  ['border-strong', 'surface'], // drop zone
   ['accent', 'card'], // focus ring, outlined buttons
   ['accent', 'bg'],
 ]
 
-describe('light theme', () => {
+describe.each(['light', 'dark'] as const)('%s theme', (scheme) => {
+  const tokens = THEMES[scheme]
+
   it('defines every color the pairs below rely on', () => {
     const names = new Set([...TEXT_PAIRS, ...UI_PAIRS].flat())
     for (const name of names) {
@@ -50,19 +62,27 @@ describe('light theme', () => {
     expect(contrastRatio(tokens[outline], tokens[background])).toBeGreaterThanOrEqual(3)
   })
 
-  it('keeps every chart bar color visible on a white card', () => {
+  it('keeps every chart bar color visible on the card', () => {
     for (let mean = 1; mean <= 5.0001; mean += 0.1) {
       expect(
-        contrastRatio(scoreColor(mean), tokens.card),
+        contrastRatio(scoreColor(mean, scheme), tokens.card),
         `mean ${mean.toFixed(1)}`,
       ).toBeGreaterThanOrEqual(3)
     }
+    expect(contrastRatio(scoreColor(null, scheme), tokens.card)).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('theme switching', () => {
+  it('follows the system by default, and tells the browser both schemes are supported', () => {
+    expect(root).toMatch(/color-scheme:\s*light dark\s*;/)
+    expect(html).toMatch(/<meta name="color-scheme" content="light dark"/)
   })
 
-  it('is light only: no dark variant, and the browser is told so', () => {
-    expect(css).toMatch(/color-scheme:\s*light\s*;/)
-    expect(css).not.toMatch(/prefers-color-scheme:\s*dark/)
-    expect(html).toMatch(/<meta name="color-scheme" content="light"/)
+  it('lets a pinned choice override the system', () => {
+    expect(css).toMatch(/:root\[data-theme='light'\]\s*\{\s*color-scheme:\s*light;/)
+    expect(css).toMatch(/:root\[data-theme='dark'\]\s*\{\s*color-scheme:\s*dark;/)
+    expect(html).toContain("localStorage.getItem('reviews-analysis.theme')")
   })
 
   it('uses the theme for the chart, not the library defaults', () => {

@@ -1,0 +1,20 @@
+{
+    // Static page for reviews.hossammostafa.ai: the folder ./site is served from
+    // Cloudflare's edge, so it stays up while the EC2 demo (reviews-demo.hossammostafa.ai)
+    // is switched off.
+    // Deploy with: npx wrangler deploy --config wrangler.site.jsonc
+    "name": "product-reviews-analysis-landing",
+    "compatibility_date": "2026-11-07",
+    "assets": {
+        "directory": "./site"
+    },
+    // Serve only at the custom domain below, not also at a *.workers.dev address.
+    "workers_dev": false,
+    "preview_urls": false,
+    // Attaches the Worker to this subdomain and creates its DNS record and certificate.
+    // Needs the hossammostafa.ai zone on this Cloudflare account and no existing DNS record
+    // with this name.
+    "routes": [
+        { "pattern": "reviews.hossammostafa.ai", "custom_domain": true }
+    ]
+}

@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f4f6fa" />
+    <title>Product Reviews Analysis · Hossam Gamal Mostafa</title>
+    <meta
+      name="description"
+      content="A live demo that turns a CSV of product reviews into per-aspect scores, using a self-hosted language model. Message me to try it."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://reviews.hossammostafa.ai/" />
+    <meta property="og:image" content="https://reviews.hossammostafa.ai/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:title" content="Product Reviews Analysis · Hossam Gamal Mostafa" />
+    <meta
+      property="og:description"
+      content="Upload product reviews, get per-aspect scores from a self-hosted language model. Live demo on request."
+    />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <style>
+      /* Light theme of the real app (frontend/src/index.css). */
+      :root {
+        color-scheme: light;
+        --bg: #f4f6fa;
+        --bg-glow: #e3e9ff;
+        --card: #ffffff;
+        --surface: #f7f8fc;
+        --text: #1a2233;
+        --muted: #556275;
+        --border: #dfe4ec;
+        --border-strong: #7c8aa0;
+        --accent: #2c4bd0;
+        --accent-hover: #2240b4;
+        --accent-text: #ffffff;
+        --accent-soft: #e8edff;
+        --ok-bg: #e4f4e8;
+        --ok-text: #14532d;
+        --ok-dot: #2e7d32;
+        --warn-bg: #fff4d6;
+        --warn-text: #6b4700;
+        --warn-dot: #a15c00;
+        --info-bg: #e6f0fb;
+        --info-text: #154a7d;
+        --shadow: 0 1px 2px rgb(20 30 60 / 0.06), 0 8px 24px rgb(20 30 60 / 0.06);
+        --radius: 14px;
+        font-family:
+          'Inter',
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(1200px 420px at 50% -120px, var(--bg-glow), transparent 70%) no-repeat,
+          var(--bg);
+        color: var(--text);
+      }
+
+      .app {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 28px 16px 32px;
+      }
+
+      /* header */
+      .app-header {
+        margin-bottom: 24px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .brand-mark {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        color: var(--accent-text);
+        box-shadow: var(--shadow);
+      }
+
+      .brand-tagline {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      h1 {
+        font-size: 1.45rem;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        margin: 0;
+      }
+
+      h2 {
+        font-size: 1.15rem;
+        letter-spacing: -0.005em;
+        margin: 0 0 10px;
+      }
+
+      .lead {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+
+      code {
+        background: var(--accent-soft);
+        color: var(--text);
+        padding: 1px 6px;
+        border-radius: 5px;
+        font-size: 0.9em;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .small {
+        font-size: 0.85rem;
+      }
+
+      /* cards */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow);
+        animation: rise 0.25s ease both;
+      }
+
+      .card:nth-of-type(2) {
+        animation-delay: 0.05s;
+      }
+
+      .card:nth-of-type(3) {
+        animation-delay: 0.1s;
+      }
+
+      .card p {
+        margin: 0 0 12px;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+      }
+
+      /* status pill */
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 16px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 0.925rem;
+        font-weight: 600;
+      }
+
+      .dot {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .status[data-state='checking'] {
+        background: var(--info-bg);
+        color: var(--info-text);
+      }
+
+      .status[data-state='checking'] .dot {
+        background: var(--accent);
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      .status[data-state='online'] {
+        background: var(--ok-bg);
+        color: var(--ok-text);
+      }
+
+      .status[data-state='online'] .dot {
+        background: var(--ok-dot);
+        box-shadow: 0 0 0 3px rgb(46 125 50 / 0.18);
+      }
+
+      .status[data-state='offline'] {
+        background: var(--warn-bg);
+        color: var(--warn-text);
+      }
+
+      .status[data-state='offline'] .dot {
+        background: var(--warn-dot);
+      }
+
+      @keyframes pulse {
+        50% {
+          opacity: 0.25;
+        }
+      }
+
+      /* buttons */
+      button,
+      .button {
+        font: inherit;
+        font-weight: 550;
+        cursor: pointer;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: var(--accent-text);
+        padding: 9px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease,
+          transform 0.1s ease;
+      }
+
+      button:not(:disabled):hover,
+      .button:hover {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
+      }
+
+      button:not(:disabled):active,
+      .button:active {
+        transform: translateY(1px);
+      }
+
+      button.secondary {
+        background: var(--card);
+        color: var(--accent);
+      }
+
+      button.secondary:not(:disabled):hover {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      button:focus-visible,
+      .button:focus-visible,
+      summary:focus-visible,
+      a:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      ul {
+        margin: 0 0 12px;
+        padding-left: 1.3em;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      /* numbered steps, drawn like the app's stepper markers */
+      .steps {
+        list-style: none;
+        counter-reset: step;
+        margin: 0;
+        padding: 0;
+      }
+
+      .steps li {
+        counter-increment: step;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .steps li + li {
+        margin-top: 10px;
+      }
+
+      .steps li::before {
+        content: counter(step);
+        flex: none;
+        display: inline-grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--accent-text);
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .steps li:first-child::before {
+        box-shadow: 0 0 0 4px var(--accent-soft);
+      }
+
+      details {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      summary {
+        cursor: pointer;
+        color: var(--accent);
+        font-weight: 550;
+      }
+
+      .message {
+        margin: 12px 0;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--accent);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+
+      #copy-status {
+        margin-left: 10px;
+      }
+
+      .tech {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+      }
+
+      .tech li,
+      .tech li + li {
+        margin: 0;
+        padding: 2px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .banner {
+        margin: 0 0 16px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border-left: 4px solid currentColor;
+        background: var(--warn-bg);
+        color: var(--warn-text);
+      }
+
+      /* footer */
+      .app-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .app-footer p {
+        margin: 0;
+      }
+
+      .footer-note {
+        flex-basis: 100%;
+        text-align: center;
+      }
+
+      .footer-credit strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .footer-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--card);
+        color: var(--accent);
+        font-weight: 550;
+        text-decoration: none;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .footer-link:hover {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .card,
+        .status[data-state='checking'] .dot {
+          animation: none;
+        }
+
+        *,
+        *::before {
+          transition: none !important;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .card {
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+
+  <body
+    data-demo-url="https://reviews-demo.hossammostafa.ai/"
+    data-timeout="5000"
+    data-poll="20000"
+  >
+    <div class="app">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+            </svg>
+          </span>
+          <div>
+            <h1>Product Reviews Analysis</h1>
+            <p class="brand-tagline">Hossam Gamal Mostafa · AI Engineer</p>
+          </div>
+        </div>
+        <p class="lead">
+          Upload a CSV of product reviews and see what customers say about each aspect of the
+          product, scored from 1 to 5 by a language model that I host myself.
+        </p>
+      </header>
+
+      <main>
+        <noscript>
+          <p class="banner">
+            JavaScript is needed to check whether the demo is running. You can still message me on
+            LinkedIn below.
+          </p>
+        </noscript>
+
+        <section class="card" aria-labelledby="demo-title">
+          <h2 id="demo-title">Live demo</h2>
+
+          <p id="status" class="status" data-state="checking" role="status" aria-busy="true">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="status-text">Checking whether the demo is running…</span>
+          </p>
+
+          <div id="online-box" hidden>
+            <p>
+              It asks for a username and password. If you don't have them yet, message me on
+              LinkedIn and I'll send them.
+            </p>
+            <div class="actions">
+              <a id="demo-link" class="button" href="https://reviews-demo.hossammostafa.ai/"
+                >Open the demo</a
+              >
+            </div>
+          </div>
+
+          <div id="offline-box" hidden>
+            <p>
+              The demo runs on a cloud server that I only start on request, to keep the cost down.
+              Message me on LinkedIn and I'll start it and send you a login. This page notices when
+              it comes up.
+            </p>
+            <p class="muted small">
+              Sure it's running? Some networks block this check.
+              <a id="demo-link-offline" href="https://reviews-demo.hossammostafa.ai/"
+                >Try opening it anyway</a
+              >.
+            </p>
+          </div>
+
+          <div class="actions">
+            <button id="recheck" type="button" class="secondary">Check again</button>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="access-title">
+          <h2 id="access-title">Want to try it?</h2>
+          <ol class="steps">
+            <li>Message me on LinkedIn.</li>
+            <li>I start the server and send you a username and password.</li>
+            <li>Open the demo and upload a CSV of reviews. A sample file is below.</li>
+          </ol>
+          <div class="actions">
+            <a
+              id="linkedin-link"
+              class="button"
+              href="https://www.linkedin.com/in/e-hossam96/"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Message me on LinkedIn</a
+            >
+          </div>
+
+          <details>
+            <summary>Suggested message</summary>
+            <p id="message-text" class="message">
+              Hi Hossam, I saw your Product Reviews Analysis project and would like to try the live
+              demo. Could you start the server and share the login? Thank you!
+            </p>
+            <button id="copy" type="button" class="secondary">Copy message</button>
+            <span id="copy-status" class="small muted" role="status"></span>
+          </details>
+        </section>
+
+        <section class="card" aria-labelledby="how-title">
+          <h2 id="how-title">What it does</h2>
+          <ul>
+            <li>You upload a CSV with a <code>text</code> column: one product, up to 100 reviews.</li>
+            <li>
+              The model suggests the product name and the aspects customers talk about, such as
+              battery life or price. You check and edit them.
+            </li>
+            <li>
+              Every review gets a score from 1 to 5 for each aspect it mentions. You see the
+              averages in a chart and can download the result as a CSV.
+            </li>
+          </ul>
+          <p>
+            <a id="sample-link" href="sample_reviews.csv" download>Download a sample file</a>
+            <span class="muted"> (100 synthetic reviews of a made-up pair of headphones)</span>
+          </p>
+          <p class="muted small">Built with</p>
+          <ul class="tech">
+            <li>FastAPI</li>
+            <li>React</li>
+            <li>llama.cpp</li>
+            <li>SQLite</li>
+            <li>Docker Compose</li>
+            <li>Caddy</li>
+            <li>AWS EC2</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <p class="footer-note">Please upload sample or public reviews only, never anything confidential.</p>
+        <p class="footer-credit">Developed by <strong>Hossam Gamal Mostafa</strong></p>
+        <a
+          class="footer-link"
+          href="https://www.linkedin.com/in/e-hossam96/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Hossam Gamal Mostafa on LinkedIn (opens in a new tab)"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="2.5" y="2.5" width="19" height="19" rx="4" />
+            <path d="M7.5 10.5v6M7.5 7.5v.01M11.5 16.5v-6M11.5 13.5a2.5 2.5 0 0 1 5 0v3" />
+          </svg>
+          <span>in/e-hossam96</span>
+        </a>
+      </footer>
+    </div>
+
+    <script>
+      ;(() => {
+        const body = document.body
+        const demoUrl = body.dataset.demoUrl
+        const timeoutMs = Number(body.dataset.timeout) || 5000
+        const pollMs = Number(body.dataset.poll) || 20000
+
+        const statusEl = document.getElementById('status')
+        const statusText = document.getElementById('status-text')
+        const onlineBox = document.getElementById('online-box')
+        const offlineBox = document.getElementById('offline-box')
+        const recheck = document.getElementById('recheck')
+
+        const TEXT = {
+          checking: 'Checking whether the demo is running…',
+          online: 'The demo is running.',
+          offline: 'The demo server is switched off right now.',
+        }
+
+        function render(state) {
+          statusEl.dataset.state = state
+          statusEl.setAttribute('aria-busy', String(state === 'checking'))
+          statusText.textContent = TEXT[state]
+          onlineBox.hidden = state !== 'online'
+          offlineBox.hidden = state !== 'offline'
+          recheck.disabled = state === 'checking'
+        }
+
+        // A browser cannot read the answer of another site, but it can tell whether that site
+        // answered at all. "no-cors" returns an opaque response when the server replied (the
+        // login prompt counts) and fails when nothing is listening, so no CORS setup is needed.
+        let latest = 0
+        async function checkDemo() {
+          const run = ++latest
+          render('checking')
+          const controller = new AbortController()
+          const timer = setTimeout(() => controller.abort(), timeoutMs)
+          try {
+            await fetch(`${demoUrl}?check=${Date.now()}`, {
+              mode: 'no-cors',
+              credentials: 'omit', // never trigger the browser's login box
+              cache: 'no-store',
+              signal: controller.signal,
+            })
+            if (run === latest) render('online')
+          } catch {
+            if (run === latest) render('offline')
+          } finally {
+            clearTimeout(timer)
+          }
+        }
+
+        recheck.addEventListener('click', checkDemo)
+
+        // While the page is open, notice when the server comes up (or goes down) by itself.
+        setInterval(() => {
+          if (document.visibilityState !== 'hidden' && statusEl.dataset.state !== 'checking') {
+            checkDemo()
+          }
+        }, pollMs)
+
+        const copyButton = document.getElementById('copy')
+        const copyStatus = document.getElementById('copy-status')
+        const message = document.getElementById('message-text')
+
+        copyButton.addEventListener('click', async () => {
+          const text = message.textContent.replace(/\s+/g, ' ').trim()
+          try {
+            await navigator.clipboard.writeText(text)
+            copyStatus.textContent = 'Copied.'
+          } catch {
+            const range = document.createRange()
+            range.selectNodeContents(message)
+            const selection = window.getSelection()
+            selection.removeAllRanges()
+            selection.addRange(range)
+            copyStatus.textContent = 'Press Ctrl+C to copy the selected text.'
+          }
+        })
+
+        checkDemo()
+      })()
+    </script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+# DOMAIN and LETSENCRYPT_EMAIL come from .env (compose.prod.yml passes them in).
+{
+	email {$LETSENCRYPT_EMAIL}
+}
+
+{$DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy frontend:80
+}

@@ -1,7 +1,3 @@
-# Deployment
-Caddyfile
-.wrangler/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -169,6 +165,9 @@ venv.bak/
 
 # Rope project settings
 .ropeproject
+
+# mkdocs/Zensical documentation
+/site
 
 # mypy
 .mypy_cache/

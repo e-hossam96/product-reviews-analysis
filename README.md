@@ -33,7 +33,7 @@ Open <http://localhost>. On the first start, llama.cpp downloads the model, whic
 For production behind Caddy:
 
 ```bash
-cp Caddyfile.example Caddyfile   # set your domain
+# set DOMAIN and LETSENCRYPT_EMAIL in .env first
 docker compose -f compose.yml -f compose.prod.yml up -d --build
 ```
 

@@ -7,6 +7,9 @@ services:
       - 80:80
       - 443:443
       - 443:443/udp
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL in .env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data # the certificates live here: keep this volume

@@ -2,8 +2,6 @@
 
 Upload customer reviews for one product and see how people feel about each part of it. Everything runs on a small open-source language model on the CPU. No paid model API is involved.
 
-Version **0.1.0**. Live demo, when it is switched on: <https://reviews-demo.hossammostafa.ai>.
-
 ## What it is
 
 You give the app a CSV of reviews for a single product. The model suggests which aspects of the product people talk about, such as "battery life" or "price". You check that list, and the model then scores every review from 1 to 5 on each aspect it mentions. The results come back as charts and a CSV export.
@@ -18,7 +16,7 @@ Two ideas shape the design:
 ## Start here
 
 | If you want to... | Read |
-|---|---|
+| --- | --- |
 | see what the app does | [Features](#features) |
 | understand how the pieces fit | [Architecture](#architecture), then [Services](#services) |
 | run it on your machine | [Configuration](#configuration), then [Run locally with Docker](#run-locally-with-docker) |
@@ -50,7 +48,7 @@ Two ideas shape the design:
 ### The five steps
 
 | Step | What happens |
-|---|---|
+| --- | --- |
 | 1. Upload | A CSV with a `text` column, up to 100 reviews. The upload is cleaned (HTML tags, URLs and control characters removed), empty rows are skipped, and the most frequent phrases (1- to 3-word n-grams) are counted. |
 | 2. Extract | The model reads a fixed sample of reviews and the top phrases, then suggests the product name and up to 10 aspects. |
 | 3. Review | You edit the name, and add, rename or remove aspects. Nothing runs until you confirm. |
@@ -60,7 +58,7 @@ Two ideas shape the design:
 ### Guard rails
 
 | Area | What it does |
-|---|---|
+| --- | --- |
 | Sessions | The session id is a random 256-bit token, kept in the browser's `sessionStorage`. It survives a reload but not a closed tab. It never appears in the server logs: requests are logged by route template only. |
 | Expiry | A background loop deletes sessions older than `SESSION_TTL_HOURS`, with their reviews, scores and jobs. A session with a job still running is kept. |
 | Rate limits | Per client IP, per endpoint group: upload, extract, analyze, reads and health. nginx overwrites `X-Forwarded-For`, so the limits can't be dodged with a forged header. |
@@ -201,7 +199,7 @@ sequenceDiagram
 ## Tech stack
 
 | Layer | Technologies |
-|---|---|
+| --- | --- |
 | Model | Qwen3.5-2B (GGUF, Q4_K_M) served by [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server` on the CPU, through its OpenAI-compatible API |
 | Backend | Python 3.14, FastAPI, SQLAlchemy 2 (async, aiosqlite) + Alembic, Pydantic settings, OpenAI Python SDK with structured outputs, SlowAPI for rate limits, Langfuse for optional tracing |
 | Frontend | React 19, TypeScript, Vite, Recharts (loaded lazily), served by nginx |
@@ -218,7 +216,7 @@ All services are defined in [`compose.yml`](compose.yml).
 ### What runs
 
 | Service | Purpose | Port |
-|---|---|---|
+| --- | --- | --- |
 | `frontend` | the web app; proxies `/api/` to the backend | `FRONTEND_PORT` (default `80`); not published in production |
 | `backend` | the API and the analysis jobs; runs the migrations on start | internal `11696` |
 | `llamacpp` | the language model; downloads it on first start | internal `8000` |
@@ -227,7 +225,7 @@ All services are defined in [`compose.yml`](compose.yml).
 ### Volumes
 
 | Volume | Holds |
-|---|---|
+| --- | --- |
 | `huggingface-cache` | the downloaded model. Keep it, or every fresh start downloads the model again. |
 | `backend-data` | the SQLite database |
 | `backend-logs` | the backend's log files |
@@ -237,7 +235,7 @@ All services are defined in [`compose.yml`](compose.yml).
 ### Networks
 
 | Network | Members | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `public` | Caddy, frontend | the edge |
 | `app` | frontend, backend | internal: no route to the internet |
 | `llm` | backend, llamacpp | llama.cpp needs the internet for the model download; the backend uses it for Langfuse |
@@ -245,7 +243,7 @@ All services are defined in [`compose.yml`](compose.yml).
 ### Compose files
 
 | File | Use |
-|---|---|
+| --- | --- |
 | `compose.yml` | the base stack, for both local and production |
 | `compose.dev.yml` | development overlay: publishes llama.cpp (`127.0.0.1:8000`) and the backend (`127.0.0.1:11696`) to your machine only |
 | `compose.prod.yml` | production overlay: adds Caddy and stops publishing the frontend port |
@@ -257,7 +255,7 @@ All services are defined in [`compose.yml`](compose.yml).
 All routes live under `/api/v1`. The session id in the path is the access token.
 
 | Method and path | What it does |
-|---|---|
+| --- | --- |
 | `GET /health` | liveness check, used by the Docker healthcheck |
 | `GET /config` | upload limits and the time estimate per review, shown before a file is picked |
 | `POST /sessions` | upload the CSV and create a session |
@@ -323,7 +321,7 @@ cp .env.example .env
 ### Model and llama.cpp
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `OPENAI_API_BASE` | `http://localhost:8000/v1` | For running the backend with `uv run`. Inside Docker, Compose always sets it to `http://llamacpp:8000/v1`. |
 | `OPENAI_API_KEY` | `not-needed` | llama-server doesn't check it, but the SDK needs a value. |
 | `OPENAI_MODEL_NAME` | `local` | |
@@ -339,7 +337,7 @@ The 16384-token context is shared between the slots, so with 4 slots each reques
 ### Sessions and analysis
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `SESSION_TTL_HOURS` | `6` | how long a session lives |
 | `SESSION_MAX_UPLOAD_MB` | `2` | must stay below nginx's `client_max_body_size` (12 MB) |
 | `SESSION_MAX_ROWS` | `100` | reviews per upload |
@@ -353,7 +351,7 @@ The 16384-token context is shared between the slots, so with 4 slots each reques
 ### Rate limits (requests per minute, per client IP)
 
 | Variable | Default |
-|---|---|
+| --- | --- |
 | `RATE_LIMIT_UPLOAD` | `5` |
 | `RATE_LIMIT_EXTRACT` | `4` |
 | `RATE_LIMIT_ANALYZE` | `3` |
@@ -363,7 +361,7 @@ The 16384-token context is shared between the slots, so with 4 slots each reques
 ### Application, storage and tracing
 
 | Variable | Default | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `APPLICATION_NAME`, `APPLICATION_VERSION` | `reviews-analysis`, `0.1.0` | the version also tags the Docker images |
 | `APPLICATION_LOG_LEVEL` | `INFO` | |
 | `DATABASE_PATH` | `./data/reviews-analysis-database.db` | relative to `backend/` |
@@ -374,7 +372,7 @@ The 16384-token context is shared between the slots, so with 4 slots each reques
 ### Production
 
 | Variable | Notes |
-|---|---|
+| --- | --- |
 | `DOMAIN` | the public host name, for example `reviews.example.com` |
 | `LETSENCRYPT_EMAIL` | the address for certificate expiry notices |
 
@@ -436,13 +434,13 @@ uv sync
 cp .env.example .env              # its OPENAI_API_BASE points at localhost:8000
 ```
 
-### Start llama.cpp (http://localhost:8000)
+### Start llama.cpp (<http://localhost:8000>)
 
 ```bash
 docker compose -f compose.yml -f compose.dev.yml up -d llamacpp
 ```
 
-### Run the backend (http://localhost:11696)
+### Run the backend (<http://localhost:11696>)
 
 The settings don't read `.env` on their own, so pass it to `uv run`:
 
@@ -452,7 +450,7 @@ uv run --env-file ../.env alembic upgrade head
 uv run --env-file ../.env uvicorn app.main:app --reload --port 11696
 ```
 
-### Run the frontend (http://localhost:5173)
+### Run the frontend (<http://localhost:5173>)
 
 Vite forwards `/api` to port 11696.
 
@@ -483,7 +481,7 @@ uv run --env-file ../.env alembic revision --autogenerate -m "describe the chang
 The tests never call a real model: the backend tests use fakes of the OpenAI client, and the frontend tests use a fake backend.
 
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `cd backend && uv run pytest` | backend tests: ingest, n-grams, schemas, model wiring, jobs, API, database, tracing |
 | `uv run ruff check .` / `uv run ruff format --check .` | Python lint and format check |
 | `cd frontend && npm run lint` | ESLint |

@@ -55,7 +55,7 @@ services:
       - app
 
   llamacpp:
-    image: ghcr.io/ggml-org/llama.cpp:server-b9744
+    image: ghcr.io/ggml-org/llama.cpp:server-b12464
     container_name: reviews-llamacpp
     restart: unless-stopped
     volumes:

@@ -1,6 +1,6 @@
 # Build the React app
 
-FROM node:22-alpine AS build
+FROM node:26-alpine3.24 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -9,7 +9,7 @@ RUN npm run build
 
 # Serve it with nginx, which also proxies /api/ to the backend
 
-FROM nginx:stable-alpine3.23
+FROM nginx:1.31.9-alpine3.24
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

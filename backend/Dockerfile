@@ -1,6 +1,8 @@
 # Build stage: resolve and install dependencies with uv
 
-FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS builder
+FROM python:3.14.10-slim-bookworm AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.9 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
@@ -25,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Main image
 
-FROM python:3.14-slim-bookworm
+FROM python:3.14.10-slim-bookworm
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \

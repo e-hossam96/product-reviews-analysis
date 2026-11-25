@@ -52,7 +52,7 @@ describe('scoreColor', () => {
   })
 
   it('blends between neighbouring stops', () => {
-    expect(scoreColor(2.5)).toBe('#ad7a82') // halfway from #d0646a to #8a8f99
+    expect(scoreColor(2.5)).toBe('#ad7d84') // halfway from #cf6a6f to #8a8f99
   })
 
   it('stays inside the range for odd input', () => {
@@ -61,6 +61,6 @@ describe('scoreColor', () => {
   })
 
   it('uses a neutral color when nothing was scored', () => {
-    expect(scoreColor(null)).toBe('#7c8aa0')
+    expect(scoreColor(null)).toBe('#7a8794')
   })
 })

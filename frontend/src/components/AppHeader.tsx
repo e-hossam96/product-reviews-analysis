@@ -1,8 +1,7 @@
-import { BarChartIcon, InfoIcon } from './icons'
 import { Stepper, type Step } from './Stepper'
 import { ThemeToggle } from './ThemeToggle'
 
-const TRACING_NOTICE = 'LLM Tracing On'
+const TRACING_NOTICE = 'Model responses are logged for debugging.'
 
 interface Props {
   step: Step
@@ -13,16 +12,8 @@ interface Props {
 export function AppHeader({ step, tracingEnabled, onRestart }: Props) {
   return (
     <header className="app-header">
-      <div className="app-title">
-        <div className="brand">
-          <span className="brand-mark">
-            <BarChartIcon />
-          </span>
-          <div>
-            <h1>Product reviews analysis</h1>
-            <p className="brand-tagline">See what customers say about each aspect</p>
-          </div>
-        </div>
+      <div className="app-bar">
+        <h1 className="wordmark">Product reviews analysis</h1>
         <div className="header-actions">
           {step !== 'upload' && (
             <button type="button" className="secondary" onClick={onRestart}>
@@ -34,8 +25,7 @@ export function AppHeader({ step, tracingEnabled, onRestart }: Props) {
       </div>
       <Stepper current={step} />
       {tracingEnabled && (
-        <p className="notice" role="note">
-          <InfoIcon />
+        <p className="notice muted small" role="note">
           {TRACING_NOTICE}
         </p>
       )}

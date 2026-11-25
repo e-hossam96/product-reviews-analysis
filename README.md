@@ -51,9 +51,9 @@ Two ideas shape the design:
 | --- | --- |
 | 1. Upload | A CSV with a `text` column, up to 100 reviews. The upload is cleaned (HTML tags, URLs and control characters removed), empty rows are skipped, and the most frequent phrases (1- to 3-word n-grams) are counted. |
 | 2. Extract | The model reads a fixed sample of reviews and the top phrases, then suggests the product name and up to 10 aspects. |
-| 3. Review | You edit the name, and add, rename or remove aspects. Nothing runs until you confirm. |
+| 3. Review | You edit the name, and add, rename or remove aspects, or pick them from a ranked list of the most frequent phrases with their review counts. Nothing runs until you confirm. |
 | 4. Analyze | A background job scores every review against the confirmed aspects. A progress bar shows reviews done and failed, and you can stop the job at any time. |
-| 5. Results | Each aspect gets its average score, a 1-to-5 distribution and a mention count. There's a word cloud of the top phrases and a CSV export of every score. |
+| 5. Results | Each aspect gets its average score, a 1-to-5 distribution and a mention count. There's a CSV export of every score. |
 
 ### Guard rails
 
@@ -296,7 +296,7 @@ With the dev overlay running, the interactive docs are at <http://localhost:1169
 │   └── entrypoint.sh       migrate, then start uvicorn
 ├── frontend/
 │   ├── src/
-│   │   ├── components/     one component per step, plus charts and the word cloud
+│   │   ├── components/     one component per step, plus the chart and the phrase list
 │   │   ├── hooks/          extraction and job polling
 │   │   └── api.ts          typed client for the backend
 │   ├── nginx.conf

@@ -20,19 +20,21 @@ const THEMES = {
 const TEXT_PAIRS: [string, string][] = [
   ['text', 'bg'],
   ['text', 'card'],
-  ['text', 'surface'], // table rows on hover, word cloud
+  ['text', 'surface'], // table rows on hover, phrase list
   ['muted', 'bg'],
   ['muted', 'card'],
   ['muted', 'surface'], // table header
-  ['accent', 'card'], // links, secondary buttons, selected phrases
+  ['accent', 'card'], // links
   ['accent', 'bg'],
-  ['accent', 'accent-soft'], // chips, selected phrases
-  ['text', 'accent-soft'],
-  ['accent-text', 'accent'], // primary buttons, current step
-  ['accent-text', 'accent-hover'],
+  ['accent-hover', 'bg'], // hovered footer link
+  ['accent', 'accent-soft'], // check mark on a selected phrase
+  ['text', 'accent-soft'], // selected phrase
+  ['muted', 'accent-soft'], // count on a selected phrase
+  ['accent-text', 'accent'], // current step
+  ['primary-text', 'primary'], // primary buttons
+  ['primary-text', 'primary-hover'],
   ['danger-text', 'danger-bg'],
   ['warn-text', 'warn-bg'],
-  ['info-text', 'info-bg'],
 ]
 
 // [outline or border color, what it sits on]: controls and focus rings need 3:1

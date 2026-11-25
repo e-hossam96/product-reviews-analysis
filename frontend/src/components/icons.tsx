@@ -18,22 +18,9 @@ function Icon({ size = 16, children }: { size?: number; children: ReactNode }) {
   )
 }
 
-export const BarChartIcon = () => (
-  <Icon size={22}>
-    <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-  </Icon>
-)
-
 export const UploadIcon = () => (
   <Icon size={24}>
     <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
-  </Icon>
-)
-
-export const InfoIcon = () => (
-  <Icon>
-    <circle cx="12" cy="12" r="9.5" />
-    <path d="M12 11v5.5M12 7.5v.01" strokeWidth="2.4" />
   </Icon>
 )
 
@@ -48,13 +35,6 @@ export const SunIcon = () => (
   <Icon>
     <circle cx="12" cy="12" r="4" />
     <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-  </Icon>
-)
-
-export const LinkedInIcon = () => (
-  <Icon>
-    <rect x="2.5" y="2.5" width="19" height="19" rx="4" />
-    <path d="M7.5 10.5v6M7.5 7.5v.01M11.5 16.5v-6M11.5 13.5a2.5 2.5 0 0 1 5 0v3" />
   </Icon>
 )
 

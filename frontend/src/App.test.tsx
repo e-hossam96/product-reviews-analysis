@@ -54,9 +54,9 @@ describe('the whole flow', () => {
     expect(chips().getByText('screen')).toBeInTheDocument()
     expect(chips().getByText('battery life')).toBeInTheDocument()
 
-    // add an aspect by typing, and another by clicking a phrase of the cloud
+    // add an aspect by typing, and another by clicking a frequent phrase
     await user.type(screen.getByLabelText(/add an aspect/i), 'Price{Enter}')
-    await user.click(screen.getByRole('button', { name: 'battery life' })) // already there
+    await user.click(screen.getByRole('button', { name: /^battery life,/ })) // already there
     expect(screen.getByRole('status')).toHaveTextContent(/already in the list/)
 
     await user.click(confirmButton())
@@ -228,7 +228,7 @@ describe('while the analysis runs', () => {
     await upload(user)
     await user.click(await screen.findByRole('button', { name: /confirm and analyze/i }))
     expect(
-      await screen.findByText(/3 of 6 reviews scored · 2 could not be scored/),
+      await screen.findByText(/3 of 6 reviews scored\. 2 could not be scored/),
     ).toBeInTheDocument()
     expect(screen.getByText(/time left: under a minute/i)).toBeInTheDocument()
     gate.resolve()
@@ -494,7 +494,9 @@ describe('after a page reload', () => {
 describe('the note about stored responses', () => {
   it('is shown when tracing is on', async () => {
     setup({ tracing: true })
-    expect(await screen.findByRole('note')).toHaveTextContent('LLM Tracing On')
+    expect(await screen.findByRole('note')).toHaveTextContent(
+      'Model responses are logged for debugging.',
+    )
   })
 
   it('is not shown when tracing is off', async () => {

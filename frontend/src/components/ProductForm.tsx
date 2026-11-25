@@ -4,7 +4,7 @@ import { MAX_NAME_LENGTH, addAspect, collapseSpaces } from '../aspects'
 import { formatDuration } from '../format'
 import { AspectEditor } from './AspectEditor'
 import { ErrorBanner } from './ErrorBanner'
-import { WordCloud } from './WordCloud'
+import { PhraseList } from './PhraseList'
 
 interface Props {
   initial: ProductDetails
@@ -52,55 +52,46 @@ export function ProductForm({
   }
 
   return (
-    <>
-      <section className="card">
-        <h2>Frequent phrases</h2>
-        <p className="muted">
-          The phrases that appear in the most reviews. Click one to add it as an aspect.
-        </p>
-        <WordCloud ngrams={ngrams} selected={aspects} onPick={handlePick} />
-        {notice && (
-          <p className="banner warn" role="status">
-            {notice}
-          </p>
-        )}
-      </section>
+    <section className="card">
+      <h2>Product details</h2>
+      <p className="muted">
+        Check what the model found and correct it. Each review is scored on these aspects.
+      </p>
+      <label className="field">
+        <span>Product name</span>
+        <input
+          value={name}
+          maxLength={MAX_NAME_LENGTH}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <div className="field">
+        <span>Aspects</span>
+        <AspectEditor aspects={aspects} max={maxAspects} onChange={setAspects} />
+      </div>
 
-      <section className="card">
-        <h2>Product details</h2>
-        <p className="muted">
-          Check what the model found and correct it. Each review is scored on these aspects.
+      <h3>Frequent phrases</h3>
+      <p className="muted">
+        The phrases that appear in the most reviews, with how many reviews use each. Click one to
+        add it as an aspect.
+      </p>
+      <PhraseList ngrams={ngrams} selected={aspects} onPick={handlePick} />
+      {notice && (
+        <p className="banner warn" role="status">
+          {notice}
         </p>
-        <label className="field">
-          <span>Product name</span>
-          <input
-            value={name}
-            maxLength={MAX_NAME_LENGTH}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </label>
-        <div className="field">
-          <span>Aspects</span>
-          <AspectEditor aspects={aspects} max={maxAspects} onChange={setAspects} />
-        </div>
-        <ErrorBanner message={error} />
-        <div className="actions">
-          <button type="button" disabled={!canSubmit} onClick={() => void handleSubmit()}>
-            {submitting ? 'Starting…' : `Confirm and analyze ${reviewCount} reviews`}
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            disabled={submitting}
-            onClick={onSuggestAgain}
-          >
-            Suggest again
-          </button>
-        </div>
-        <p className="muted small">
-          Scoring takes {formatDuration(reviewCount * secondsPerReview)}.
-        </p>
-      </section>
-    </>
+      )}
+
+      <ErrorBanner message={error} />
+      <div className="actions">
+        <button type="button" disabled={!canSubmit} onClick={() => void handleSubmit()}>
+          {submitting ? 'Starting…' : `Confirm and analyze ${reviewCount} reviews`}
+        </button>
+        <button type="button" className="secondary" disabled={submitting} onClick={onSuggestAgain}>
+          Suggest again
+        </button>
+      </div>
+      <p className="muted small">Scoring takes {formatDuration(reviewCount * secondsPerReview)}.</p>
+    </section>
   )
 }

@@ -16,34 +16,31 @@ interface Props {
 
 export function ResultsStep({ sessionId, results, onEdit }: Props) {
   return (
-    <>
-      <section className="card">
-        <h2>{results.product_name}</h2>
-        <p className="muted">
-          {results.analyzed_count} of {results.review_count} reviews analyzed.
-          {results.failed_count > 0 &&
-            ` ${results.failed_count} could not be scored and are marked as failed in the CSV.`}
-        </p>
-        <ChartBoundary>
-          <Suspense fallback={<ChartPlaceholder />}>
-            <ScoreChart aspects={results.aspects} />
-          </Suspense>
-        </ChartBoundary>
-        <div className="actions">
-          <a className="button" href={exportUrl(sessionId)} download>
-            Download CSV
-          </a>
-          <button type="button" className="secondary" onClick={onEdit}>
-            Edit the aspects
-          </button>
-        </div>
-      </section>
+    <section className="card">
+      <h2>{results.product_name}</h2>
+      <p className="muted">
+        {results.analyzed_count} of {results.review_count} reviews analyzed.
+        {results.failed_count > 0 &&
+          ` ${results.failed_count} could not be scored and are marked as failed in the CSV.`}
+      </p>
+      <ChartBoundary>
+        <Suspense fallback={<ChartPlaceholder />}>
+          <ScoreChart aspects={results.aspects} />
+        </Suspense>
+      </ChartBoundary>
+      <div className="actions">
+        <a className="button" href={exportUrl(sessionId)} download>
+          Download CSV
+        </a>
+        <button type="button" className="secondary" onClick={onEdit}>
+          Edit the aspects
+        </button>
+      </div>
 
-      <section className="card">
-        <h2>Numbers</h2>
-        <ScoreTable aspects={results.aspects} />
-      </section>
-    </>
+      <h3>Score breakdown</h3>
+      <p className="muted small">How many reviews gave each aspect each score, from 1 to 5.</p>
+      <ScoreTable aspects={results.aspects} />
+    </section>
   )
 }
 

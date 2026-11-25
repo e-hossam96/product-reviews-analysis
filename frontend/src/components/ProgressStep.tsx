@@ -60,7 +60,7 @@ export function ProgressStep({
       <progress aria-label="Analysis progress" value={done} max={total > 0 ? total : undefined} />
       <p role="status">
         {job ? `${done} of ${total} reviews scored` : 'Starting…'}
-        {job && job.failed > 0 && ` · ${job.failed} could not be scored`}
+        {job && job.failed > 0 && `. ${job.failed} could not be scored`}
       </p>
       {job && total > done && (
         <p className="muted small">Time left: {formatDuration(remainingSeconds)}.</p>

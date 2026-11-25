@@ -103,10 +103,7 @@ export function ScoreChart({ aspects }: { aspects: AspectResult[] }) {
               axisLine={false}
               tickLine={false}
             />
-            <Tooltip
-              content={ChartTooltip}
-              cursor={{ fill: 'var(--accent-soft)', fillOpacity: 0.6 }}
-            />
+            <Tooltip content={ChartTooltip} cursor={{ fill: 'var(--surface)' }} />
             <Bar dataKey="mean" radius={[4, 4, 0, 0]} maxBarSize={64} isAnimationActive={false}>
               {data.map((datum) => (
                 <Cell key={datum.aspect} fill={scoreColor(datum.mean, scheme)} />
@@ -117,12 +114,12 @@ export function ScoreChart({ aspects }: { aspects: AspectResult[] }) {
         </ResponsiveContainer>
       </div>
       <div className="score-legend">
-        <span>1 · Negative</span>
+        <span>1 = negative</span>
         <span
           className="score-legend-bar"
           style={{ background: `linear-gradient(to right, ${SCORE_STOPS[scheme].join(', ')})` }}
         />
-        <span>5 · Positive</span>
+        <span>5 = positive</span>
       </div>
     </>
   )

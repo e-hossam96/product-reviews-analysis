@@ -83,9 +83,7 @@ export function UploadStep({ config, onUploaded }: Props) {
           disabled={busy}
           onChange={handleChange}
         />
-        <span className="dropzone-icon">
-          <UploadIcon />
-        </span>
+        <UploadIcon />
         <span className="dropzone-title">
           {busy ? 'Uploading…' : 'Choose a CSV file or drop it here'}
         </span>

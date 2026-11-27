@@ -4,30 +4,35 @@
    In both themes every text color is at least 4.5:1 against the background it sits on,
    and every border or outline that marks a control is at least 3:1 (checked in theme.test.ts).
 
-   Palette: Thunder #252022 (ink, dark card), Heather #c0cdd7 (dividers, dark hover),
-   Jelly Bean #227599 (light accent), Fountain Blue #5fa7c0 (dark accent). The interface
-   is ink and grey; the accent marks focus, selection and progress, and nothing else. */
+   Palette: Tidal print. Background, surface (here --card), border, text, muted, link
+   (here --accent), button (--primary), soft blue (--bar), sand and rust come from it.
+   --surface is the page color reused as an inset inside cards; --border-strong,
+   --accent-soft and the hover shades are derived, because the palette's own border and
+   soft blue are too faint for controls and text. Primary buttons are the palette's
+   button blue; the link blue marks links, focus, selection and progress. */
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#f3f5f7, #1a1718);
-  --card: light-dark(#ffffff, #252022);
-  --surface: light-dark(#eef2f5, #2f2a2c); /* table header, hovered rows, phrase list */
-  --text: light-dark(#252022, #e9eef2);
-  --muted: light-dark(#56606a, #a3adb6);
-  --border: light-dark(#c0cdd7, #3a3437); /* dividers and card edges, not controls */
-  --border-strong: light-dark(#7a8794, #7d8790); /* inputs, drop zone, step markers */
-  --primary: light-dark(#252022, #e9eef2); /* primary buttons: ink */
-  --primary-hover: light-dark(#3d3539, #c0cdd7);
-  --primary-text: light-dark(#ffffff, #252022);
-  --accent: light-dark(#227599, #5fa7c0);
-  --accent-hover: light-dark(#1b5f7c, #7dbdd2);
-  --accent-text: light-dark(#ffffff, #252022);
-  --accent-soft: light-dark(#edf5f8, #1c3039);
-  --bar: light-dark(#c0cdd7, #4a5660); /* phrase frequency bars */
-  --danger-bg: light-dark(#fdecec, #3a1c20);
+  --bg: light-dark(#f3f5f0, #0a1b2e);
+  --card: light-dark(#dce8ee, #12304a);
+  --surface: light-dark(#f3f5f0, #0a1b2e); /* table header, hovered rows, drop zone */
+  --text: light-dark(#0b2d4f, #eaf1f5);
+  --muted: light-dark(#3f5f7c, #9db6c9);
+  --border: light-dark(#bfd0da, #24435e); /* dividers and card edges, not controls */
+  --border-strong: light-dark(#6a8499, #5f7f99); /* inputs, drop zone, step markers */
+  --primary: light-dark(#1e78a6, #5fa8d3); /* primary buttons */
+  --primary-hover: light-dark(#18638a, #82bde0);
+  --primary-text: light-dark(#ffffff, #0a1b2e);
+  --accent: light-dark(#1f5f8b, #8db4cc); /* links, focus, selection, progress */
+  --accent-hover: light-dark(#174a6d, #b3cfe0);
+  --accent-text: light-dark(#ffffff, #0a1b2e);
+  --accent-soft: light-dark(#c9dce8, #1c4566);
+  --bar: light-dark(#8db4cc, #2f6690); /* soft blue: phrase frequency bars */
+  --sand: light-dark(#f0c98a, #f0c98a);
+  --rust: light-dark(#b5532e, #e08a63);
+  --danger-bg: light-dark(#fdecec, #3d1d27);
   --danger-text: light-dark(#8f1d1d, #ffb8b8);
-  --warn-bg: light-dark(#fff4d6, #332811);
-  --warn-text: light-dark(#6b4700, #f4d084);
+  --warn-bg: light-dark(#f0c98a, #f0c98a); /* sand */
+  --warn-text: light-dark(#0b2d4f, #0b2d4f);
   --radius: 6px;
   font-family:
     system-ui,
@@ -388,6 +393,8 @@ input::placeholder {
 .banner.warn {
   background: var(--warn-bg);
   color: var(--warn-text);
+  border-color: var(--rust);
+  border-left-width: 4px;
 }
 
 /* upload */

@@ -16,17 +16,17 @@ export function formatScore(mean: number | null, digits = 2): string {
 }
 
 // The average score has a direction (bad, neutral, good), so the bars use a diverging
-// scale: red for 1, a neutral gray for 3, the palette's blue for 5 (Jelly Bean in the
-// light theme, Fountain Blue in the dark one), one stop per whole score.
-// Red and blue stay apart for colorblind readers, unlike red and green. The gray
+// scale: the palette's rust for 1, a neutral gray for 3, its button blue for 5, one stop
+// per whole score.
+// Rust and blue stay apart for colorblind readers, unlike red and green. The gray
 // midpoint is the most recessive stop: lightest in the light theme, dimmest in the dark
 // theme. Every stop, and every blend between them, is at least 3:1 against the card
 // (checked in theme.test.ts).
 export const SCORE_STOPS: Record<ColorScheme, string[]> = {
-  light: ['#b8323a', '#cf6a6f', '#8a8f99', '#4f93b0', '#227599'],
-  dark: ['#f07878', '#c4787f', '#7b7f88', '#4c8ba3', '#5fa7c0'],
+  light: ['#b5532e', '#b06f5a', '#77838e', '#4f86a8', '#1e78a6'],
+  dark: ['#e08a63', '#b98670', '#6f8496', '#4f8fb8', '#5fa8d3'],
 }
-const NEUTRAL: Record<ColorScheme, string> = { light: '#7a8794', dark: '#8a939c' }
+const NEUTRAL: Record<ColorScheme, string> = { light: '#6a8499', dark: '#8a939c' }
 
 const toRgb = (color: string) => [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16))
 const hex = (value: number) => Math.round(value).toString(16).padStart(2, '0')
